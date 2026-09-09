@@ -234,12 +234,13 @@
                 DOM.btnEntrar.textContent = "Verificando...";
                 DOM.msgErro.classList.add('hidden');
                 
-                auth.signInWithEmailAndPassword(email, senha)
-                    .catch(error => {
-                        DOM.msgErro.textContent = "Acesso negado. Verifique e-mail e senha.";
-                        DOM.msgErro.classList.remove('hidden');
-                        DOM.btnEntrar.textContent = "Acessar Painel";
-                    });
+                auth.signInWithEmailAndPassword(email, senha).catch(error => {
+                // Agora a tela vai mostrar o código real do erro do servidor
+                DOM.msgErro.textContent = "Erro Firebase: " + error.code;
+                DOM.msgErro.classList.remove('hidden');
+                DOM.btnEntrar.textContent = "Acessar Painel";
+                console.error("Detalhe do erro:", error);
+                 });
             });
 
             DOM.btnSair.addEventListener('click', () => {
