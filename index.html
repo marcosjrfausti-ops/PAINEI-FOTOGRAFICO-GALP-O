@@ -532,40 +532,55 @@
                         });
                     }
 
-                    // 4. Constrói o HTML invisível para o PDF
+                    // 4. Constrói o HTML invisível para o PDF (Novo Layout Hierárquico)
                     const relatorioDiv = document.createElement('div');
-                    relatorioDiv.style.padding = '20px';
-                    relatorioDiv.style.fontFamily = 'Arial, sans-serif';
+                    relatorioDiv.style.padding = '10px';
+                    relatorioDiv.style.fontFamily = 'Arial, sans-serif'; // Fonte web-safe para textos nítidos
                     relatorioDiv.style.color = '#000';
                     
                     let htmlContent = '';
+                    let isFirstPage = true;
 
                     for (const [local, datas] of Object.entries(agrupado)) {
-                        for (const [dataIso, info] of Object.entries(datas)) {
-                            
+                        
+                        // Quebra de página antes de um novo local (exceto no primeiro)
+                        const pageBreak = isFirstPage ? '' : 'page-break-before: always;';
+                        isFirstPage = false;
+
+                        // Título do Local
+                        htmlContent += `
+                            <div style="${pageBreak} padding-top: 10px;">
+                                <h1 style="text-transform: uppercase; font-size: 22px; font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 20px; letter-spacing: 0.5px;">${local}</h1>
+                        `;
+
+                        // Ordena as datas de forma crescente
+                        const datasOrdenadas = Object.keys(datas).sort();
+
+                        for (const dataIso of datasOrdenadas) {
+                            const info = datas[dataIso];
                             const p = dataIso.split('-');
                             const dataBr = `${p[2]}/${p[1]}/${p[0]}`;
 
                             info.fotos.sort((a, b) => a.posicao.localeCompare(b.posicao));
 
+                            // Bloco da Data e Descrição
                             htmlContent += `
-                                <div style="page-break-after: always; padding-top: 20px;">
-                                    <h1 style="text-transform: uppercase; font-size: 20px; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 5px;">${local}</h1>
-                                    <h2 style="font-size: 16px; margin-top: 0; color: #555; margin-bottom: 20px;">Registro Diário - ${dataBr}</h2>
-                                    
-                                    <div style="background-color: #f3f4f6; padding: 10px; margin: 20px 0; font-size: 14px; text-align: center; border-radius: 4px;">
-                                        <strong>Levantamento:</strong> ${info.descricao}
+                                <div style="margin-bottom: 30px;">
+                                    <div style="background-color: #f3f4f6; padding: 10px 15px; margin-bottom: 15px; border-left: 4px solid #0284c7;">
+                                        <h2 style="font-size: 16px; margin: 0 0 5px 0; color: #333; font-weight: bold;">Registro Diário - ${dataBr}</h2>
+                                        <p style="font-size: 14px; margin: 0; color: #111;">${info.descricao}</p>
                                     </div>
 
                                     <div style="display: flex; flex-wrap: wrap; gap: 2%; justify-content: flex-start;">
                             `;
 
+                            // Fotos daquela data (com page-break-inside para evitar corte no meio da foto)
                             info.fotos.forEach(f => {
                                 htmlContent += `
-                                    <div style="width: 48%; text-align: center; margin-bottom: 20px;">
-                                        <img src="${f.caminho_original}" style="width: 100%; height: 250px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px;">
-                                        <p style="font-size: 12px; margin-top: 5px; font-weight: bold;">Posição: ${f.posicao}</p>
-                                    </div>
+                                        <div style="width: 48%; text-align: center; margin-bottom: 15px; page-break-inside: avoid;">
+                                            <img src="${f.caminho_original}" style="width: 100%; height: 260px; object-fit: cover; border: 1px solid #000; border-radius: 2px;">
+                                            <p style="font-size: 12px; margin-top: 5px; font-weight: bold; color: #000;">Posição: ${f.posicao}</p>
+                                        </div>
                                 `;
                             });
 
@@ -574,16 +589,19 @@
                                 </div>
                             `;
                         }
+
+                        // Fecha a div do Local
+                        htmlContent += `</div>`;
                     }
 
                     relatorioDiv.innerHTML = htmlContent;
 
-                    // 5. Configura e gera o PDF
+                    // 5. Configura e gera o PDF (Ajuste de Qualidade Máxima)
                     const opt = {
-                        margin:       10,
+                        margin:       [10, 10, 10, 10], // Margens: topo, direita, base, esquerda
                         filename:     'Relatorio_Avanco_Fisico.pdf',
-                        image:        { type: 'jpeg', quality: 0.98 },
-                        html2canvas:  { scale: 2, useCORS: true },
+                        image:        { type: 'jpeg', quality: 1.0 }, // Qualidade máxima da imagem
+                        html2canvas:  { scale: 4, useCORS: true, letterRendering: true }, // Scale 4 resolve o texto embaçado
                         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
                     };
 
@@ -597,7 +615,6 @@
                     btn.disabled = false;
                 }
             });
-
         }); // Fim do DOMContentLoaded
     </script>
 </body>
