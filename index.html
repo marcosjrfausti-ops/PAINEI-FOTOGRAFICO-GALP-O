@@ -8,8 +8,8 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <!-- Script do Supabase substituindo o Firebase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <script>
         tailwind.config = {
@@ -154,17 +154,12 @@
     </div> <!-- Fim do app-content -->
 
     <script>
-        // === CONFIGURAÇÃO DO FIREBASE (PREENCHA AQUI COM SEUS DADOS) ===
-        const firebaseConfig = {
-            apiKey: "AIzaSyDTyVjHdTo5vmRhqGzpyPGlLXolzu31dYo",
-            authDomain: "painel-fotografico-galpao.firebaseapp.com",
-            projectId: "painel-fotografico-galpao",
-            storageBucket: "painel-fotografico-galpao.appspot.com",
-            messagingSenderId: "521603564212",
-            appId: "1:521603564212:web:c971ec390d4f6734b54de1"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
+        // === CONFIGURAÇÃO DO SUPABASE (COLE SUA URL E ANON KEY AQUI) ===
+        const supabaseUrl = 'https://sazravlfmlgidbjiguhx.supabase.co/rest/v1/';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhenJhdmxmbWxnaWRiamlndWh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5NjI5MTEsImV4cCI6MjEwNDUzODkxMX0.xJ5S_rmZsF8Sf8tv9fQz2PC72G-qcAg1RLGU_yRxFTo';
+        
+        // Inicializa o cliente do Supabase
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         document.addEventListener('DOMContentLoaded', () => {
             
@@ -208,9 +203,11 @@
             let chartInstance = null; 
             let baseDeDadosProcessada = []; 
 
-            // === LÓGICA DE AUTENTICAÇÃO ===
-            auth.onAuthStateChanged(user => {
-                if (user) {
+            // === LÓGICA DE AUTENTICAÇÃO SUPABASE ===
+            
+            // Monitora o estado da autenticação (login/logout)
+            supabase.auth.onAuthStateChange((event, session) => {
+                if (session) {
                     DOM.telaLogin.classList.add('hidden');
                     DOM.appContent.classList.remove('hidden');
                     ajustarEstadoSidebarInicial();
@@ -221,7 +218,8 @@
                 }
             });
 
-            DOM.btnEntrar.addEventListener('click', () => {
+            // Ação do botão Entrar
+            DOM.btnEntrar.addEventListener('click', async () => {
                 const email = DOM.emailInput.value;
                 const senha = DOM.senhaInput.value;
                 
@@ -234,23 +232,28 @@
                 DOM.btnEntrar.textContent = "Verificando...";
                 DOM.msgErro.classList.add('hidden');
                 
-                auth.signInWithEmailAndPassword(email, senha).catch(error => {
-                // Agora a tela vai mostrar o código real do erro do servidor
-                DOM.msgErro.textContent = "Erro Firebase: " + error.code;
-                DOM.msgErro.classList.remove('hidden');
-                DOM.btnEntrar.textContent = "Acessar Painel";
-                console.error("Detalhe do erro:", error);
-                 });
+                const { error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: senha,
+                });
+
+                if (error) {
+                    DOM.msgErro.textContent = "Erro Supabase: " + error.message;
+                    DOM.msgErro.classList.remove('hidden');
+                    DOM.btnEntrar.textContent = "Acessar Painel";
+                    console.error("Detalhe do erro:", error);
+                }
             });
 
-            DOM.btnSair.addEventListener('click', () => {
-                auth.signOut();
+            // Ação do botão Sair
+            DOM.btnSair.addEventListener('click', async () => {
+                await supabase.auth.signOut();
                 DOM.emailInput.value = '';
                 DOM.senhaInput.value = '';
                 DOM.btnEntrar.textContent = "Acessar Painel";
             });
 
-            // === RESTANTE DO SEU CÓDIGO ===
+            // === RESTANTE DO SEU CÓDIGO (MANTIDO INTACTO) ===
             const deParaLocais = {
                 "areaexternaladodireito": "Área Externa Lado Direito",
                 "passeioladoesquerdo": "Passeio Lado Esquerdo",
