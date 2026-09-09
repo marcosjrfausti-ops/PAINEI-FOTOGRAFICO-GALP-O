@@ -153,13 +153,13 @@
             </div>
         </div>
     </div>
-
     <script>
-        // === CONFIGURAÇÃO DO SUPABASE (A URL base foi corrigida) ===
+        // === CONFIGURAÇÃO DO SUPABASE ===
         const supabaseUrl = 'https://sazravlfmlgidbjiguhx.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhenJhdmxmbWxnaWRiamlndWh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5NjI5MTEsImV4cCI6MjEwNDUzODkxMX0.xJ5S_rmZsF8Sf8tv9fQz2PC72G-qcAg1RLGU_yRxFTo';
         
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        // MUDANÇA AQUI: Renomeamos para supabaseClient para evitar conflitos
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         document.addEventListener('DOMContentLoaded', () => {
             
@@ -194,7 +194,7 @@
             let baseDeDadosProcessada = []; 
 
             // === AUTENTICAÇÃO ===
-            supabase.auth.onAuthStateChange((event, session) => {
+            supabaseClient.auth.onAuthStateChange((event, session) => {
                 if (session) {
                     DOM.telaLogin.classList.add('hidden');
                     DOM.appContent.classList.remove('hidden');
@@ -206,7 +206,8 @@
                 }
             });
 
-            DOM.btnEntrar.addEventListener('click', async () => {
+            // Função separada para o login
+            const fazerLogin = async () => {
                 const email = DOM.emailInput.value;
                 const senha = DOM.senhaInput.value;
                 
@@ -219,7 +220,7 @@
                 DOM.btnEntrar.textContent = "Verificando...";
                 DOM.msgErro.classList.add('hidden');
                 
-                const { error } = await supabase.auth.signInWithPassword({
+                const { error } = await supabaseClient.auth.signInWithPassword({
                     email: email,
                     password: senha,
                 });
@@ -229,10 +230,18 @@
                     DOM.msgErro.classList.remove('hidden');
                     DOM.btnEntrar.textContent = "Acessar Painel";
                 }
+            };
+
+            // Evento do botão
+            DOM.btnEntrar.addEventListener('click', fazerLogin);
+            
+            // Permite logar apertando "Enter" no campo de senha
+            DOM.senhaInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') fazerLogin();
             });
 
             DOM.btnSair.addEventListener('click', async () => {
-                await supabase.auth.signOut();
+                await supabaseClient.auth.signOut();
                 DOM.emailInput.value = '';
                 DOM.senhaInput.value = '';
                 DOM.btnEntrar.textContent = "Acessar Painel";
@@ -255,7 +264,7 @@
                 DOM.msgCarregando.classList.remove('hidden');
 
                 // Busca todos os registros na tabela
-                const { data, error } = await supabase.from('registros_obras').select('*');
+                const { data, error } = await supabaseClient.from('registros_obras').select('*');
                 
                 DOM.msgCarregando.classList.add('hidden');
 
@@ -487,5 +496,3 @@
             }
         });
     </script>
-</body>
-</html>
