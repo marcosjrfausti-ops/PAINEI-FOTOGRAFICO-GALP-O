@@ -38,7 +38,6 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
-    <!-- O dados.js foi removido daqui! Os dados vêm direto do banco agora. -->
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col overflow-hidden selection:bg-brand-500 selection:text-white">
 
@@ -109,6 +108,7 @@
                         <button id="btn-limpar" class="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-brand-600 font-medium py-2.5 px-4 rounded-lg transition-all shadow-sm focus:ring-2 focus:ring-gray-200">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                             Limpar Filtros
+                        </button>
                         <button id="btn-baixar-pdf" class="w-full mt-3 flex items-center justify-center gap-2 bg-gray-800 text-white hover:bg-gray-900 font-medium py-2.5 px-4 rounded-lg transition-all shadow-sm">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                             GERAR PDF
@@ -157,12 +157,12 @@
             </div>
         </div>
     </div>
+    
     <script>
         // === CONFIGURAÇÃO DO SUPABASE ===
         const supabaseUrl = 'https://sazravlfmlgidbjiguhx.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhenJhdmxmbWxnaWRiamlndWh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5NjI5MTEsImV4cCI6MjEwNDUzODkxMX0.xJ5S_rmZsF8Sf8tv9fQz2PC72G-qcAg1RLGU_yRxFTo';
         
-        // MUDANÇA AQUI: Renomeamos para supabaseClient para evitar conflitos
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -210,7 +210,6 @@
                 }
             });
 
-            // Função separada para o login
             const fazerLogin = async () => {
                 const email = DOM.emailInput.value;
                 const senha = DOM.senhaInput.value;
@@ -236,10 +235,8 @@
                 }
             };
 
-            // Evento do botão
             DOM.btnEntrar.addEventListener('click', fazerLogin);
             
-            // Permite logar apertando "Enter" no campo de senha
             DOM.senhaInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') fazerLogin();
             });
@@ -267,7 +264,6 @@
                 DOM.emptyState.classList.remove('hidden');
                 DOM.msgCarregando.classList.remove('hidden');
 
-                // Busca todos os registros na tabela
                 const { data, error } = await supabaseClient.from('registros_obras').select('*');
                 
                 DOM.msgCarregando.classList.add('hidden');
@@ -277,7 +273,6 @@
                     return;
                 }
 
-                // Processa os dados retornados do banco
                 baseDeDadosProcessada = data.map(item => {
                     let filename = item.nome_arquivo.split('.')[0];
                     let partes = filename.split('_');
@@ -498,5 +493,112 @@
                     }
                 });
             }
-        });
+
+            // === AÇÃO DO BOTÃO PDF ===
+            document.getElementById('btn-baixar-pdf').addEventListener('click', async () => {
+                const btn = document.getElementById('btn-baixar-pdf');
+                const textoOriginal = btn.innerHTML;
+                btn.innerHTML = 'Processando...';
+                btn.disabled = true;
+
+                try {
+                    // 1. Busca as descrições da nova tabela
+                    const { data: descricoesData, error: descError } = await supabaseClient.from('descricoes_diarias').select('*');
+                    
+                    if (descError) {
+                        console.error("Erro ao buscar descrições:", descError);
+                    }
+
+                    // 2. Agrupa as fotos existentes por Local -> Data
+                    const agrupado = {};
+                    
+                    baseDeDadosProcessada.forEach(foto => {
+                        const loc = foto.local_exibicao;
+                        const dt = foto.data_iso; 
+                        
+                        if (!agrupado[loc]) agrupado[loc] = {};
+                        if (!agrupado[loc][dt]) agrupado[loc][dt] = { fotos: [], descricao: 'Sem descrição cadastrada.' };
+                        
+                        agrupado[loc][dt].fotos.push(foto);
+                    });
+
+                    // 3. Mescla as descrições do Supabase no agrupamento
+                    if (descricoesData) {
+                        descricoesData.forEach(desc => {
+                            const dtBanco = desc.data; 
+                            if (agrupado[desc.local] && agrupado[desc.local][dtBanco]) {
+                                agrupado[desc.local][dtBanco].descricao = desc.descricao;
+                            }
+                        });
+                    }
+
+                    // 4. Constrói o HTML invisível para o PDF
+                    const relatorioDiv = document.createElement('div');
+                    relatorioDiv.style.padding = '20px';
+                    relatorioDiv.style.fontFamily = 'Arial, sans-serif';
+                    relatorioDiv.style.color = '#000';
+                    
+                    let htmlContent = '';
+
+                    for (const [local, datas] of Object.entries(agrupado)) {
+                        for (const [dataIso, info] of Object.entries(datas)) {
+                            
+                            const p = dataIso.split('-');
+                            const dataBr = `${p[2]}/${p[1]}/${p[0]}`;
+
+                            info.fotos.sort((a, b) => a.posicao.localeCompare(b.posicao));
+
+                            htmlContent += `
+                                <div style="page-break-after: always; padding-top: 20px;">
+                                    <h1 style="text-transform: uppercase; font-size: 20px; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 5px;">${local}</h1>
+                                    <h2 style="font-size: 16px; margin-top: 0; color: #555; margin-bottom: 20px;">Registro Diário - ${dataBr}</h2>
+                                    
+                                    <div style="background-color: #f3f4f6; padding: 10px; margin: 20px 0; font-size: 14px; text-align: center; border-radius: 4px;">
+                                        <strong>Levantamento:</strong> ${info.descricao}
+                                    </div>
+
+                                    <div style="display: flex; flex-wrap: wrap; gap: 2%; justify-content: flex-start;">
+                            `;
+
+                            info.fotos.forEach(f => {
+                                htmlContent += `
+                                    <div style="width: 48%; text-align: center; margin-bottom: 20px;">
+                                        <img src="${f.caminho_original}" style="width: 100%; height: 250px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px;">
+                                        <p style="font-size: 12px; margin-top: 5px; font-weight: bold;">Posição: ${f.posicao}</p>
+                                    </div>
+                                `;
+                            });
+
+                            htmlContent += `
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+
+                    relatorioDiv.innerHTML = htmlContent;
+
+                    // 5. Configura e gera o PDF
+                    const opt = {
+                        margin:       10,
+                        filename:     'Relatorio_Avanco_Fisico.pdf',
+                        image:        { type: 'jpeg', quality: 0.98 },
+                        html2canvas:  { scale: 2, useCORS: true },
+                        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                    };
+
+                    await html2pdf().set(opt).from(relatorioDiv).save();
+
+                } catch (error) {
+                    console.error("Erro ao gerar PDF:", error);
+                    alert("Ocorreu um erro ao gerar o PDF. Verifique o console.");
+                } finally {
+                    btn.innerHTML = textoOriginal;
+                    btn.disabled = false;
+                }
+            });
+
+        }); // Fim do DOMContentLoaded
     </script>
+</body>
+</html>
