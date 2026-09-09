@@ -37,12 +37,11 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
-
-    <script src="dados.js"></script>
+    <!-- O dados.js foi removido daqui! Os dados vêm direto do banco agora. -->
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col overflow-hidden selection:bg-brand-500 selection:text-white">
 
-    <!-- TELA DE LOGIN (Mostrada por padrão) -->
+    <!-- TELA DE LOGIN -->
     <div id="tela-login" class="fixed inset-0 bg-gray-100 z-50 flex items-center justify-center">
         <div class="bg-white p-8 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.05)] w-full max-w-sm border border-gray-100">
             <h2 class="text-2xl font-bold mb-6 text-gray-800 text-center tracking-tight">Avanço Físico</h2>
@@ -53,7 +52,7 @@
         </div>
     </div>
 
-    <!-- CONTEÚDO DO APP (Escondido até o login ser confirmado) -->
+    <!-- CONTEÚDO DO APP -->
     <div id="app-content" class="hidden flex flex-col h-screen w-full overflow-hidden relative">
         
         <!-- Cabeçalho Global -->
@@ -124,11 +123,13 @@
                         </div>
                         <h3 class="text-xl font-bold text-gray-800 mb-2">Nenhuma foto encontrada</h3>
                         <p class="text-gray-500 max-w-md mx-auto">Ajuste os filtros de data, local ou posição para encontrar os registros.</p>
+                        <p id="msg-carregando" class="text-brand-600 font-medium mt-4 hidden">Sincronizando com o banco de dados...</p>
                     </div>
                 </div>
             </main>
         </div>
 
+        <!-- Modal Gráfico (Mantido) -->
         <div id="modal-grafico" class="fixed inset-0 z-50 bg-black/60 hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden transform scale-95 transition-transform duration-300" id="modal-content">
                 <div class="flex items-center justify-between p-5 border-b border-gray-100 bg-gray-50">
@@ -151,24 +152,18 @@
                 </div>
             </div>
         </div>
-    </div> <!-- Fim do app-content -->
+    </div>
 
     <script>
-        // === CONFIGURAÇÃO DO SUPABASE (COLE SUA URL E ANON KEY AQUI) ===
-        const supabaseUrl = 'https://sazravlfmlgidbjiguhx.supabase.co/rest/v1/';
+        // === CONFIGURAÇÃO DO SUPABASE (A URL base foi corrigida) ===
+        const supabaseUrl = 'https://sazravlfmlgidbjiguhx.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhenJhdmxmbWxnaWRiamlndWh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5NjI5MTEsImV4cCI6MjEwNDUzODkxMX0.xJ5S_rmZsF8Sf8tv9fQz2PC72G-qcAg1RLGU_yRxFTo';
         
-        // Inicializa o cliente do Supabase
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         document.addEventListener('DOMContentLoaded', () => {
             
-            if (typeof window.bancoFotos === 'undefined' || window.bancoFotos.length === 0) {
-                window.bancoFotos = [];
-            }
-
             const DOM = {
-                // Elementos de Login
                 telaLogin: document.getElementById('tela-login'),
                 appContent: document.getElementById('app-content'),
                 btnEntrar: document.getElementById('btn-entrar'),
@@ -176,8 +171,6 @@
                 emailInput: document.getElementById('email-login'),
                 senhaInput: document.getElementById('senha-login'),
                 msgErro: document.getElementById('msg-erro'),
-
-                // Elementos do App
                 selectLocal: document.getElementById('filtro-local'),
                 selectPosicao: document.getElementById('filtro-posicao'),
                 inputData: document.getElementById('filtro-data'),
@@ -185,14 +178,11 @@
                 gridFotos: document.getElementById('grid-fotos'),
                 emptyState: document.getElementById('empty-state'),
                 badgeContador: document.getElementById('badge-contador'),
-                
-                // Sidebar e Toggle
+                msgCarregando: document.getElementById('msg-carregando'),
                 btnToggleMenu: document.getElementById('btn-toggle-menu'),
                 sidebar: document.getElementById('sidebar'),
                 mainContent: document.getElementById('main-content'),
                 mobileOverlay: document.getElementById('mobile-overlay'),
-
-                // Modal & Gráfico
                 btnGrafico: document.getElementById('btn-grafico'),
                 modalGrafico: document.getElementById('modal-grafico'),
                 modalContent: document.getElementById('modal-content'),
@@ -203,9 +193,7 @@
             let chartInstance = null; 
             let baseDeDadosProcessada = []; 
 
-            // === LÓGICA DE AUTENTICAÇÃO SUPABASE ===
-            
-            // Monitora o estado da autenticação (login/logout)
+            // === AUTENTICAÇÃO ===
             supabase.auth.onAuthStateChange((event, session) => {
                 if (session) {
                     DOM.telaLogin.classList.add('hidden');
@@ -218,7 +206,6 @@
                 }
             });
 
-            // Ação do botão Entrar
             DOM.btnEntrar.addEventListener('click', async () => {
                 const email = DOM.emailInput.value;
                 const senha = DOM.senhaInput.value;
@@ -238,22 +225,22 @@
                 });
 
                 if (error) {
-                    DOM.msgErro.textContent = "Erro Supabase: " + error.message;
+                    DOM.msgErro.textContent = "E-mail ou senha incorretos.";
                     DOM.msgErro.classList.remove('hidden');
                     DOM.btnEntrar.textContent = "Acessar Painel";
-                    console.error("Detalhe do erro:", error);
                 }
             });
 
-            // Ação do botão Sair
             DOM.btnSair.addEventListener('click', async () => {
                 await supabase.auth.signOut();
                 DOM.emailInput.value = '';
                 DOM.senhaInput.value = '';
                 DOM.btnEntrar.textContent = "Acessar Painel";
+                baseDeDadosProcessada = [];
+                DOM.gridFotos.innerHTML = '';
             });
 
-            // === RESTANTE DO SEU CÓDIGO (MANTIDO INTACTO) ===
+            // === LÓGICA DE DADOS (ETL NO FRONTEND) ===
             const deParaLocais = {
                 "areaexternaladodireito": "Área Externa Lado Direito",
                 "passeioladoesquerdo": "Passeio Lado Esquerdo",
@@ -262,9 +249,24 @@
                 "fundacaofrontal": "Fundação Frontal"
             };
 
-            const extrairDadosDoNome = () => {
-                baseDeDadosProcessada = window.bancoFotos.map(item => {
-                    let filename = item.caminho.split('/').pop().split('.')[0];
+            const carregarDadosDoSupabase = async () => {
+                DOM.gridFotos.classList.add('hidden');
+                DOM.emptyState.classList.remove('hidden');
+                DOM.msgCarregando.classList.remove('hidden');
+
+                // Busca todos os registros na tabela
+                const { data, error } = await supabase.from('registros_obras').select('*');
+                
+                DOM.msgCarregando.classList.add('hidden');
+
+                if (error) {
+                    console.error("Erro ao buscar dados do Supabase:", error);
+                    return;
+                }
+
+                // Processa os dados retornados do banco
+                baseDeDadosProcessada = data.map(item => {
+                    let filename = item.nome_arquivo.split('.')[0];
                     let partes = filename.split('_');
                     
                     let localStr = partes[0] || 'Indefinido';
@@ -288,12 +290,11 @@
                 });
             };
 
-            const inicializar = () => {
-                // Impede que o script recrie as opções se o usuário deslogar e logar de novo
+            const inicializar = async () => {
                 DOM.selectLocal.innerHTML = '<option value="">Todos os locais</option>';
                 DOM.selectPosicao.innerHTML = '<option value="">Todas as posições</option>';
 
-                extrairDadosDoNome();
+                await carregarDadosDoSupabase();
                 
                 const locais = new Set();
                 const posicoes = new Set();
@@ -383,6 +384,7 @@
                 renderizarGrid();
             });
 
+            // === UI & MODAIS ===
             let isMenuOpen = window.innerWidth >= 768; 
             
             const ajustarEstadoSidebarInicial = () => {
