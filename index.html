@@ -133,7 +133,7 @@
             </main>
         </div>
 
-        <!-- Modal Gráfico (Mantido) -->
+        <!-- Modal Gráfico -->
         <div id="modal-grafico" class="fixed inset-0 z-50 bg-black/60 hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden transform scale-95 transition-transform duration-300" id="modal-content">
                 <div class="flex items-center justify-between p-5 border-b border-gray-100 bg-gray-50">
@@ -250,7 +250,7 @@
                 DOM.gridFotos.innerHTML = '';
             });
 
-            // === LÓGICA DE DADOS (ETL NO FRONTEND) ===
+            // === LÓGICA DE DADOS ===
             const deParaLocais = {
                 "areaexternaladodireito": "Área Externa Lado Direito",
                 "passeioladoesquerdo": "Passeio Lado Esquerdo",
@@ -494,15 +494,21 @@
                 });
             }
 
-            // === AÇÃO DO BOTÃO PDF ===
+            // === AÇÃO DO BOTÃO PDF (CORRIGIDA) ===
             document.getElementById('btn-baixar-pdf').addEventListener('click', async () => {
                 const btn = document.getElementById('btn-baixar-pdf');
                 const textoOriginal = btn.innerHTML;
+                
+                if (baseDeDadosProcessada.length === 0) {
+                    alert("Nenhum registro encontrado para gerar o PDF.");
+                    return;
+                }
+                
                 btn.innerHTML = 'Processando...';
                 btn.disabled = true;
 
                 try {
-                    // 1. Busca as descrições da nova tabela
+                    // 1. Busca as descrições da tabela
                     const { data: descricoesData, error: descError } = await supabaseClient.from('descricoes_diarias').select('*');
                     
                     if (descError) {
@@ -511,6 +517,7 @@
 
                     // 2. Agrupa as fotos existentes por Local -> Data
                     const agrupado = {};
+                    const urlsImagens = [];
                     
                     baseDeDadosProcessada.forEach(foto => {
                         const loc = foto.local_exibicao;
@@ -520,6 +527,7 @@
                         if (!agrupado[loc][dt]) agrupado[loc][dt] = { fotos: [], descricao: 'Sem descrição cadastrada.' };
                         
                         agrupado[loc][dt].fotos.push(foto);
+                        urlsImagens.push(foto.caminho_original);
                     });
 
                     // 3. Mescla as descrições do Supabase no agrupamento
@@ -527,7 +535,6 @@
                         descricoesData.forEach(desc => {
                             const dtBanco = desc.data; 
                             
-                            // Localiza a chave exata ignorando maiúsculas/minúsculas e espaços em branco
                             const locKey = Object.keys(agrupado).find(k => 
                                 k.trim().toLowerCase() === (desc.local || '').trim().toLowerCase()
                             );
@@ -538,28 +545,31 @@
                         });
                     }
 
-                    // 4. Constrói o HTML invisível para o PDF (Novo Layout Hierárquico)
-                    const relatorioDiv = document.createElement('div');
-                    relatorioDiv.style.padding = '10px';
-                    relatorioDiv.style.fontFamily = 'Arial, sans-serif'; 
-                    relatorioDiv.style.color = '#000';
-                    
+                    // 4. Pré-carregamento de TODAS AS IMAGENS em memória garantindo suporte a CORS.
+                    // Isso assegura que o html2canvas não bloqueie renderizações devido à segurança (tainted canvas)
+                    await Promise.all(urlsImagens.map(src => {
+                        return new Promise(resolve => {
+                            const img = new Image();
+                            img.crossOrigin = 'anonymous';
+                            img.onload = resolve;
+                            img.onerror = resolve; // Avança mesmo em caso de falha de uma imagem individual
+                            img.src = src;
+                        });
+                    }));
+
+                    // 5. Constrói a estrutura HTML como String p/ o html2pdf
                     let htmlContent = '';
                     let isFirstPage = true;
 
                     for (const [local, datas] of Object.entries(agrupado)) {
                         
-                        // Quebra de página antes de um novo local (exceto no primeiro)
-                        const pageBreak = isFirstPage ? '' : 'page-break-before: always;';
-                        isFirstPage = false;
-
-                        // Título do Local
+                        // Troca lógica de estilo inline pela classe usada pela configuração pagebreak
                         htmlContent += `
-                            <div style="${pageBreak} padding-top: 10px;">
+                            <div class="${isFirstPage ? '' : 'nova-pagina'}" style="padding-top: 10px;">
                                 <h1 style="text-transform: uppercase; font-size: 22px; font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 20px; letter-spacing: 0.5px;">${local}</h1>
                         `;
+                        isFirstPage = false;
 
-                        // Ordena as datas de forma crescente
                         const datasOrdenadas = Object.keys(datas).sort();
 
                         for (const dataIso of datasOrdenadas) {
@@ -579,13 +589,12 @@
                                     <div style="display: block; width: 100%;">
                             `;
                             
-                            // Fotos daquela data (inline-block em vez de flex para garantir a quebra correta)
+                            // Fotos daquela data (Adicionado crossorigin="anonymous")
                             info.fotos.forEach((f, index) => {
-                                // Adiciona margem apenas no elemento ímpar (esquerda) para simular o grid
                                 const marginR = (index % 2 === 0) ? 'margin-right: 2%;' : 'margin-right: 0;';
                                 htmlContent += `
                                         <div style="display: inline-block; width: 49%; ${marginR} text-align: center; margin-bottom: 15px; page-break-inside: avoid; vertical-align: top;">
-                                            <img src="${f.caminho_original}" style="width: 100%; height: 260px; object-fit: cover; border: 1px solid #000; border-radius: 2px;">
+                                            <img src="${f.caminho_original}" crossorigin="anonymous" style="width: 100%; height: 260px; object-fit: cover; border: 1px solid #000; border-radius: 2px;">
                                             <p style="font-size: 12px; margin-top: 5px; font-weight: bold; color: #000;">Posição: ${f.posicao}</p>
                                         </div>
                                 `;
@@ -600,54 +609,31 @@
                         // Fecha a div do Local
                         htmlContent += `</div>`;
                     }
-
-                    relatorioDiv.innerHTML = htmlContent;
-
-                    // 1. Anexa a div de forma invisível na tela
-                    relatorioDiv.style.position = 'absolute';
-                    relatorioDiv.style.left = '-9999px';
-                    relatorioDiv.style.top = '0';
-                    relatorioDiv.style.width = '800px'; // Força uma largura fixa para o html2canvas não se perder
-                    document.body.appendChild(relatorioDiv);
-
-                    // 2. FUNÇÃO CRUCIAL: Aguardar TODAS as imagens carregarem
-                    const imagens = relatorioDiv.querySelectorAll('img');
-                    const promessasDeImagens = Array.from(imagens).map(img => {
-                        return new Promise((resolve, reject) => {
-                            if (img.complete) {
-                                resolve();
-                            } else {
-                                img.onload = resolve;
-                                img.onerror = resolve; // Resolve mesmo se falhar para não travar o PDF
-                            }
-                        });
-                    });
-
-                    // Espera todas as imagens terminarem o download
-                    await Promise.all(promessasDeImagens);
                     
-                    // Adiciona um pequeno atraso de segurança pós-carregamento
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    // Empacota o HTML processado estabelecendo uma largura absoluta para o engine de captura
+                    const relatorioCompleto = `
+                        <div style="width: 800px; font-family: Arial, sans-serif; color: #000; padding: 10px;">
+                            ${htmlContent}
+                        </div>
+                    `;
 
-                    // 3. Configura e gera o PDF
+                    // 6. Configurações otimizadas p/ HTML2PDF
                     const opt = {
                         margin:       [10, 10, 10, 10], 
                         filename:     'Relatorio_Avanco_Fisico.pdf',
                         image:        { type: 'jpeg', quality: 0.98 }, 
                         html2canvas:  { 
                             scale: 2, 
-                            useCORS: true,
-                            scrollY: 0 // Evita bugs caso a tela esteja rolada
+                            useCORS: true, 
+                            windowWidth: 800, // Previne que ele use o viewport mobile do usuário esmagando o layout
+                            scrollY: 0, 
                         }, 
                         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                        pagebreak:    { mode: ['css', 'legacy'] }
+                        pagebreak:    { mode: ['css', 'legacy'], before: '.nova-pagina' }
                     };
 
-                    // 4. Gera o arquivo
-                    await html2pdf().set(opt).from(relatorioDiv).save();
-
-                    // 5. Remove a div invisível para limpar a tela
-                    document.body.removeChild(relatorioDiv);
+                    // Passamos a string diretamente, o framework se encarrega de clonar p/ um IFrame em background invisível
+                    await html2pdf().set(opt).from(relatorioCompleto).save();
 
                 } catch (error) {
                     console.error("Erro ao gerar PDF:", error);
@@ -657,3 +643,8 @@
                     btn.disabled = false;
                 }
             });
+
+        });
+    </script>
+</body>
+</html>
