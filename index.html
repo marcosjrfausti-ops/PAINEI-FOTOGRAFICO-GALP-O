@@ -260,43 +260,63 @@
             };
 
             const carregarDadosDoSupabase = async () => {
-                DOM.gridFotos.classList.add('hidden');
-                DOM.emptyState.classList.remove('hidden');
-                DOM.msgCarregando.classList.remove('hidden');
+    DOM.gridFotos.classList.add('hidden');
+    DOM.emptyState.classList.remove('hidden');
+    DOM.msgCarregando.classList.remove('hidden');
 
-                const { data, error } = await supabaseClient.from('registros_obras').select('*');
-                
-                DOM.msgCarregando.classList.add('hidden');
+    // 1. Busca os registros na tabela
+    const { data, error } = await supabaseClient.from('registros_obras').select('*');
+    
+    DOM.msgCarregando.classList.add('hidden');
 
-                if (error) {
-                    console.error("Erro ao buscar dados do Supabase:", error);
-                    return;
-                }
+    if (error) {
+        console.error("Erro ao buscar dados do Supabase:", error);
+        return;
+    }
 
-                baseDeDadosProcessada = data.map(item => {
-                    let filename = item.nome_arquivo.split('.')[0];
-                    let partes = filename.split('_');
-                    
-                    let localStr = partes[0] || 'Indefinido';
-                    let posicaoStr = partes[1] || 'Indefinido';
-                    let dataStr = partes[2] || ''; 
-                    
-                    let dataFormatada = '';
-                    if(dataStr.length === 8) {
-                        dataFormatada = `${dataStr.substring(0,4)}-${dataStr.substring(4,6)}-${dataStr.substring(6,8)}`;
-                    }
+    // 2. Processa cada registro e solicita uma URL Segura (Signed URL)
+    const promessas = data.map(async (item) => {
+        // Limpa o caminho caso o banco de dados tenha salvo a URL completa do bucket público antigo
+        let caminhoArquivo = item.caminho;
+        if (caminhoArquivo.includes('/fotos-obra/')) {
+            caminhoArquivo = caminhoArquivo.split('/fotos-obra/')[1];
+        }
 
-                    let localFormatado = deParaLocais[localStr.toLowerCase()] || (localStr.charAt(0).toUpperCase() + localStr.slice(1));
+        // Solicita ao Supabase um link temporário válido por 2 horas (7200 segundos)
+        const { data: signedData, error: signedError } = await supabaseClient
+            .storage
+            .from('fotos-obra')
+            .createSignedUrl(caminhoArquivo, 7200);
 
-                    return {
-                        caminho_original: item.caminho,
-                        local_exibicao: localFormatado,
-                        posicao: posicaoStr,
-                        data_iso: dataFormatada,
-                        mes_iso: dataFormatada ? dataFormatada.substring(0,7) : '' 
-                    };
-                });
-            };
+        const urlSegura = signedError ? '' : signedData.signedUrl;
+
+        // Processamento do nome do arquivo para os filtros
+        let filename = item.nome_arquivo.split('.')[0];
+        let partes = filename.split('_');
+        
+        let localStr = partes[0] || 'Indefinido';
+        let posicaoStr = partes[1] || 'Indefinido';
+        let dataStr = partes[2] || ''; 
+        
+        let dataFormatada = '';
+        if(dataStr.length === 8) {
+            dataFormatada = `${dataStr.substring(0,4)}-${dataStr.substring(4,6)}-${dataStr.substring(6,8)}`;
+        }
+
+        let localFormatado = deParaLocais[localStr.toLowerCase()] || (localStr.charAt(0).toUpperCase() + localStr.slice(1));
+
+        return {
+            caminho_original: urlSegura, // Agora usa o link protegido
+            local_exibicao: localFormatado,
+            posicao: posicaoStr,
+            data_iso: dataFormatada,
+            mes_iso: dataFormatada ? dataFormatada.substring(0,7) : '' 
+        };
+    });
+
+    // Aguarda todas as URLs seguras serem geradas antes de liberar a interface
+    baseDeDadosProcessada = await Promise.all(promessas);
+};
 
             const inicializar = async () => {
                 DOM.selectLocal.innerHTML = '<option value="">Todos os locais</option>';
