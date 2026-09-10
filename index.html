@@ -522,12 +522,18 @@
                         agrupado[loc][dt].fotos.push(foto);
                     });
 
-                    // 3. Mescla as descrições do Supabase no agrupamento
+                    /// 3. Mescla as descrições do Supabase no agrupamento
                     if (descricoesData) {
                         descricoesData.forEach(desc => {
                             const dtBanco = desc.data; 
-                            if (agrupado[desc.local] && agrupado[desc.local][dtBanco]) {
-                                agrupado[desc.local][dtBanco].descricao = desc.descricao;
+                            
+                            // Localiza a chave exata ignorando maiúsculas/minúsculas e espaços em branco
+                            const locKey = Object.keys(agrupado).find(k => 
+                                k.trim().toLowerCase() === (desc.local || '').trim().toLowerCase()
+                            );
+                    
+                            if (locKey && agrupado[locKey][dtBanco]) {
+                                agrupado[locKey][dtBanco].descricao = desc.descricao;
                             }
                         });
                     }
