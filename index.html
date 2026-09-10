@@ -618,17 +618,30 @@
 
                     relatorioDiv.innerHTML = htmlContent;
 
-                    // 5. Configura e gera o PDF (Ajuste de Qualidade Máxima)
+                    // 1. Anexa a div de forma invisível na tela para forçar o carregamento das imagens
+                    relatorioDiv.style.position = 'absolute';
+                    relatorioDiv.style.left = '-9999px';
+                    relatorioDiv.style.top = '0';
+                    document.body.appendChild(relatorioDiv);
+
+                    // 2. Configura e gera o PDF (Scale ajustado para 2)
                     const opt = {
-                        margin:       [10, 10, 10, 10],
+                        margin:       [10, 10, 10, 10], 
                         filename:     'Relatorio_Avanco_Fisico.pdf',
-                        image:        { type: 'jpeg', quality: 1.0 },
-                        html2canvas:  { scale: 4, useCORS: true, letterRendering: true }, 
+                        image:        { type: 'jpeg', quality: 0.98 }, 
+                        html2canvas:  { scale: 2, useCORS: true }, // Scale 2 evita o limite de memória da GPU
                         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                        pagebreak:    { mode: ['css', 'legacy'] } // OBRIGATÓRIO: Habilita o reconhecimento das quebras CSS
+                        pagebreak:    { mode: ['css', 'legacy'] }
                     };
 
+                    // 3. Força um atraso de 800ms para garantir que o DOM renderizou as imagens
+                    await new Promise(resolve => setTimeout(resolve, 800));
+
+                    // 4. Gera o arquivo
                     await html2pdf().set(opt).from(relatorioDiv).save();
+
+                    // 5. Remove a div invisível para limpar a tela
+                    document.body.removeChild(relatorioDiv);
 
                 } catch (error) {
                     console.error("Erro ao gerar PDF:", error);
