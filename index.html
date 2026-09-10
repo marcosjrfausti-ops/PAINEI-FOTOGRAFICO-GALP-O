@@ -156,6 +156,17 @@
                 </div>
             </div>
         </div>
+
+        <!-- Modal Ampliação de Imagem -->
+        <div id="modal-imagem" class="fixed inset-0 z-[60] bg-black/90 hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+            <button id="btn-fechar-imagem" class="absolute top-4 right-4 text-white hover:text-red-500 p-2 transition-colors z-10 bg-black/50 rounded-full">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <div class="relative max-w-5xl w-full flex flex-col items-center justify-center transform scale-95 transition-transform duration-300" id="modal-imagem-content">
+                <img id="img-ampliada" src="" alt="" class="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl">
+                <p id="legenda-ampliada" class="text-white text-center mt-4 text-sm md:text-lg font-medium bg-black/50 px-6 py-2 rounded-full shadow-lg backdrop-blur-sm"></p>
+            </div>
+        </div>
     </div>
     
     <script>
@@ -191,7 +202,13 @@
                 modalGrafico: document.getElementById('modal-grafico'),
                 modalContent: document.getElementById('modal-content'),
                 btnFecharModal: document.getElementById('btn-fechar-modal'),
-                graficoMesInput: document.getElementById('grafico-mes-input')
+                graficoMesInput: document.getElementById('grafico-mes-input'),
+                // Elementos do Modal de Imagem
+                modalImagem: document.getElementById('modal-imagem'),
+                modalImagemContent: document.getElementById('modal-imagem-content'),
+                imgAmpliada: document.getElementById('img-ampliada'),
+                legendaAmpliada: document.getElementById('legenda-ampliada'),
+                btnFecharImagem: document.getElementById('btn-fechar-imagem')
             };
 
             let chartInstance = null; 
@@ -407,9 +424,13 @@
                     const imgSrc = foto.caminho_original; 
                     const fallbackImg = "https://placehold.co/600x600/f1f5f9/94a3b8?text=Imagem+N%C3%A3o+Encontrada";
 
+                    // Adicionado classes para cursor e overlay de lupa (indicando clique)
                     card.innerHTML = `
-                        <div class="relative aspect-square bg-gray-100 overflow-hidden border-b border-gray-100">
+                        <div class="relative aspect-square bg-gray-100 overflow-hidden border-b border-gray-100 cursor-pointer foto-clicavel" data-src="${imgSrc}" data-legenda="${legendaTexto}">
                             <img src="${imgSrc}" alt="${legendaTexto}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" onerror="this.onerror=null;this.src='${fallbackImg}';">
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <svg class="w-10 h-10 text-white drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                            </div>
                         </div>
                         <div class="p-4 bg-white text-center mt-auto flex flex-col justify-center min-h-[70px]">
                             <p class="text-sm font-bold text-gray-800">${foto.local_exibicao}</p>
@@ -429,7 +450,55 @@
                 renderizarGrid();
             });
 
-            // === UI & MODAIS ===
+            // === LÓGICA DE ABRIR IMAGEM EM TELA CHEIA ===
+            DOM.gridFotos.addEventListener('click', (e) => {
+                const container = e.target.closest('.foto-clicavel');
+                if (container) {
+                    const src = container.getAttribute('data-src');
+                    const legenda = container.getAttribute('data-legenda');
+                    abrirModalImagem(src, legenda);
+                }
+            });
+
+            const abrirModalImagem = (src, legenda) => {
+                DOM.imgAmpliada.src = src;
+                DOM.legendaAmpliada.textContent = legenda;
+                DOM.modalImagem.classList.remove('hidden');
+                
+                // Animação de entrada
+                setTimeout(() => {
+                    DOM.modalImagem.classList.remove('opacity-0');
+                    DOM.modalImagemContent.classList.remove('scale-95');
+                }, 10);
+            };
+
+            const fecharModalImagem = () => {
+                DOM.modalImagem.classList.add('opacity-0');
+                DOM.modalImagemContent.classList.add('scale-95');
+                
+                // Animação de saída
+                setTimeout(() => {
+                    DOM.modalImagem.classList.add('hidden');
+                    DOM.imgAmpliada.src = ''; // Limpa a imagem p/ não piscar a anterior na próxima abertura
+                }, 300);
+            };
+
+            DOM.btnFecharImagem.addEventListener('click', fecharModalImagem);
+            
+            // Fecha clicando fora da imagem
+            DOM.modalImagem.addEventListener('click', (e) => {
+                if (e.target === DOM.modalImagem) fecharModalImagem();
+            });
+
+            // Fecha ao apertar a tecla ESC
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !DOM.modalImagem.classList.contains('hidden')) {
+                    fecharModalImagem();
+                }
+            });
+
+
+            // === UI & MODAIS GERAIS ===
             let isMenuOpen = window.innerWidth >= 768; 
             
             const ajustarEstadoSidebarInicial = () => {
@@ -531,7 +600,7 @@
                 });
             }
 
-            // === AÇÃO DO BOTÃO PDF (CORRIGIDA DEFINITIVAMENTE) ===
+            // === AÇÃO DO BOTÃO PDF ===
             document.getElementById('btn-baixar-pdf').addEventListener('click', async () => {
                 const btn = document.getElementById('btn-baixar-pdf');
                 const textoOriginal = btn.innerHTML;
@@ -616,11 +685,9 @@
                                         <h2 style="font-size: 18px; margin: 0 0 8px 0; color: #111; font-weight: bold;">Registro Diário - ${dataBr}</h2>
                                         <p style="font-size: 15px; margin: 0; color: #333; line-height: 1.5;">${info.descricao}</p>
                                     </div>
-                                    <div style="display: block; width: 100%; font-size: 0;"> <!-- font-size: 0 previne bugs de espaçamento no inline-block -->
+                                    <div style="display: block; width: 100%; font-size: 0;"> 
                             `;
                             
-                            // Usando pixels fixos: Se a página tem 800px totais, menos 40px (padding 20x20) = 760px úteis.
-                            // 370px por imagem + 20px de margem direita = 760px exatos.
                             info.fotos.forEach((f, index) => {
                                 const marginR = (index % 2 === 0) ? 'margin-right: 20px;' : 'margin-right: 0;';
                                 htmlContent += `
@@ -639,8 +706,6 @@
                         htmlContent += `</div>`;
                     }
                     
-                    // Em vez de passar uma String crua, criamos um elemento físico invisível no Body
-                    // Isso obriga o navegador a processar o CSS corretamente antes do html2canvas agir
                     const relatorioDiv = document.createElement('div');
                     relatorioDiv.style.width = '800px';
                     relatorioDiv.style.padding = '20px';
@@ -655,7 +720,6 @@
 
                     document.body.appendChild(relatorioDiv);
 
-                    // Pequeno atraso para dar tempo ao DOM de renderizar
                     await new Promise(r => setTimeout(r, 500));
 
                     const opt = {
@@ -674,7 +738,6 @@
 
                     await html2pdf().set(opt).from(relatorioDiv).save();
 
-                    // Limpa a memória após gerar o PDF
                     document.body.removeChild(relatorioDiv);
 
                 } catch (error) {
