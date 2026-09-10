@@ -572,12 +572,28 @@
                             // Bloco da Data e Descrição
                             htmlContent += `
                                 <div style="margin-bottom: 30px;">
-                                    <div style="background-color: #f3f4f6; padding: 10px 15px; margin-bottom: 15px; border-left: 4px solid #0284c7;">
+                                    <div style="background-color: #f3f4f6; padding: 10px 15px; margin-bottom: 15px; border-left: 4px solid #0284c7; page-break-inside: avoid;">
                                         <h2 style="font-size: 16px; margin: 0 0 5px 0; color: #333; font-weight: bold;">Registro Diário - ${dataBr}</h2>
                                         <p style="font-size: 14px; margin: 0; color: #111;">${info.descricao}</p>
                                     </div>
-
-                                    <div style="display: flex; flex-wrap: wrap; gap: 2%; justify-content: flex-start;">
+                                    <div style="display: block; width: 100%;">
+                            `;
+                            
+                            // Fotos daquela data (inline-block em vez de flex para garantir a quebra correta)
+                            info.fotos.forEach((f, index) => {
+                                // Adiciona margem apenas no elemento ímpar (esquerda) para simular o grid
+                                const marginR = (index % 2 === 0) ? 'margin-right: 2%;' : 'margin-right: 0;';
+                                htmlContent += `
+                                        <div style="display: inline-block; width: 49%; ${marginR} text-align: center; margin-bottom: 15px; page-break-inside: avoid; vertical-align: top;">
+                                            <img src="${f.caminho_original}" style="width: 100%; height: 260px; object-fit: cover; border: 1px solid #000; border-radius: 2px;">
+                                            <p style="font-size: 12px; margin-top: 5px; font-weight: bold; color: #000;">Posição: ${f.posicao}</p>
+                                        </div>
+                                `;
+                            });
+                            
+                            htmlContent += `
+                                    </div>
+                                </div>
                             `;
 
                             // Fotos daquela data (com page-break-inside para evitar corte no meio da foto)
@@ -604,11 +620,12 @@
 
                     // 5. Configura e gera o PDF (Ajuste de Qualidade Máxima)
                     const opt = {
-                        margin:       [10, 10, 10, 10], // Margens: topo, direita, base, esquerda
+                        margin:       [10, 10, 10, 10],
                         filename:     'Relatorio_Avanco_Fisico.pdf',
-                        image:        { type: 'jpeg', quality: 1.0 }, // Qualidade máxima da imagem
-                        html2canvas:  { scale: 4, useCORS: true, letterRendering: true }, // Scale 4 resolve o texto embaçado
-                        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                        image:        { type: 'jpeg', quality: 1.0 },
+                        html2canvas:  { scale: 4, useCORS: true, letterRendering: true }, 
+                        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                        pagebreak:    { mode: ['css', 'legacy'] } // OBRIGATÓRIO: Habilita o reconhecimento das quebras CSS
                     };
 
                     await html2pdf().set(opt).from(relatorioDiv).save();
