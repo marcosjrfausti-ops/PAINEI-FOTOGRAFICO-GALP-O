@@ -8,7 +8,7 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Script do Supabase substituindo o Firebase -->
+    <!-- Script do Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
@@ -250,7 +250,7 @@
                 DOM.gridFotos.innerHTML = '';
             });
 
-            // === LÓGICA DE DADOS ===
+            // === LÓGICA DE DADOS OTIMIZADA ===
             const deParaLocais = {
                 "areaexternaladodireito": "Área Externa Lado Direito",
                 "passeioladoesquerdo": "Passeio Lado Esquerdo",
@@ -260,63 +260,90 @@
             };
 
             const carregarDadosDoSupabase = async () => {
-    DOM.gridFotos.classList.add('hidden');
-    DOM.emptyState.classList.remove('hidden');
-    DOM.msgCarregando.classList.remove('hidden');
+                DOM.gridFotos.classList.add('hidden');
+                DOM.emptyState.classList.remove('hidden');
+                DOM.msgCarregando.classList.remove('hidden');
 
-    // 1. Busca os registros na tabela
-    const { data, error } = await supabaseClient.from('registros_obras').select('*');
-    
-    DOM.msgCarregando.classList.add('hidden');
+                const { data, error } = await supabaseClient.from('registros_obras').select('*');
+                
+                DOM.msgCarregando.classList.add('hidden');
 
-    if (error) {
-        console.error("Erro ao buscar dados do Supabase:", error);
-        return;
-    }
+                if (error) {
+                    console.error("Erro ao buscar dados do Supabase:", error);
+                    return;
+                }
 
-    // 2. Processa cada registro e solicita uma URL Segura (Signed URL)
-    const promessas = data.map(async (item) => {
-        // Limpa o caminho caso o banco de dados tenha salvo a URL completa do bucket público antigo
-        let caminhoArquivo = item.caminho;
-        if (caminhoArquivo.includes('/fotos-obra/')) {
-            caminhoArquivo = caminhoArquivo.split('/fotos-obra/')[1];
-        }
+                if (!data || data.length === 0) {
+                    baseDeDadosProcessada = [];
+                    return;
+                }
 
-        // Solicita ao Supabase um link temporário válido por 2 horas (7200 segundos)
-        const { data: signedData, error: signedError } = await supabaseClient
-            .storage
-            .from('fotos-obra')
-            .createSignedUrl(caminhoArquivo, 7200);
+                // 1. Extrair os caminhos (paths) garantindo que nenhum resquício da URL inteira interfira
+                const caminhosExtraidos = data.map(item => {
+                    let path = item.caminho || '';
+                    
+                    if (path.includes('/public/fotos-obra/')) {
+                        path = path.split('/public/fotos-obra/')[1];
+                    } else if (path.includes('/fotos-obra/')) {
+                        path = path.split('/fotos-obra/')[1];
+                    }
+                    
+                    // Remove parâmetros de interrogação se existirem
+                    if (path.includes('?')) path = path.split('?')[0];
+                    
+                    return path;
+                });
 
-        const urlSegura = signedError ? '' : signedData.signedUrl;
+                // 2. Usar o createSignedUrls (Lote) - MUITO mais rápido que fazer 1 a 1 e evita travamentos
+                const { data: signedUrlsData, error: signedUrlsError } = await supabaseClient
+                    .storage
+                    .from('fotos-obra')
+                    .createSignedUrls(caminhosExtraidos, 7200); // Válido por 2h (7200s)
 
-        // Processamento do nome do arquivo para os filtros
-        let filename = item.nome_arquivo.split('.')[0];
-        let partes = filename.split('_');
-        
-        let localStr = partes[0] || 'Indefinido';
-        let posicaoStr = partes[1] || 'Indefinido';
-        let dataStr = partes[2] || ''; 
-        
-        let dataFormatada = '';
-        if(dataStr.length === 8) {
-            dataFormatada = `${dataStr.substring(0,4)}-${dataStr.substring(4,6)}-${dataStr.substring(6,8)}`;
-        }
+                if (signedUrlsError) {
+                    console.error("Erro ao gerar URLs assinadas em lote:", signedUrlsError);
+                }
 
-        let localFormatado = deParaLocais[localStr.toLowerCase()] || (localStr.charAt(0).toUpperCase() + localStr.slice(1));
+                // 3. Montar dicionário (Map) para achar rápido a URL segura gerada
+                const mapaUrls = {};
+                if (signedUrlsData) {
+                    signedUrlsData.forEach(file => {
+                        if (!file.error) {
+                            mapaUrls[file.path] = file.signedUrl;
+                        } else {
+                            console.warn("Falha no acesso à imagem:", file.path, file.error);
+                        }
+                    });
+                }
 
-        return {
-            caminho_original: urlSegura, // Agora usa o link protegido
-            local_exibicao: localFormatado,
-            posicao: posicaoStr,
-            data_iso: dataFormatada,
-            mes_iso: dataFormatada ? dataFormatada.substring(0,7) : '' 
-        };
-    });
+                // 4. Estruturar banco final
+                baseDeDadosProcessada = data.map((item, index) => {
+                    const pathExato = caminhosExtraidos[index];
+                    const urlSegura = mapaUrls[pathExato] || ''; 
+                    
+                    let filename = item.nome_arquivo ? item.nome_arquivo.split('.')[0] : 'Indefinido_Indefinido';
+                    let partes = filename.split('_');
+                    
+                    let localStr = partes[0] || 'Indefinido';
+                    let posicaoStr = partes[1] || 'Indefinido';
+                    let dataStr = partes[2] || ''; 
+                    
+                    let dataFormatada = '';
+                    if(dataStr.length === 8) {
+                        dataFormatada = `${dataStr.substring(0,4)}-${dataStr.substring(4,6)}-${dataStr.substring(6,8)}`;
+                    }
 
-    // Aguarda todas as URLs seguras serem geradas antes de liberar a interface
-    baseDeDadosProcessada = await Promise.all(promessas);
-};
+                    let localFormatado = deParaLocais[localStr.toLowerCase()] || (localStr.charAt(0).toUpperCase() + localStr.slice(1));
+
+                    return {
+                        caminho_original: urlSegura,
+                        local_exibicao: localFormatado,
+                        posicao: posicaoStr,
+                        data_iso: dataFormatada,
+                        mes_iso: dataFormatada ? dataFormatada.substring(0,7) : '' 
+                    };
+                });
+            };
 
             const inicializar = async () => {
                 DOM.selectLocal.innerHTML = '<option value="">Todos os locais</option>';
@@ -514,7 +541,7 @@
                 });
             }
 
-            // === AÇÃO DO BOTÃO PDF (CORRIGIDA) ===
+            // === AÇÃO DO BOTÃO PDF ===
             document.getElementById('btn-baixar-pdf').addEventListener('click', async () => {
                 const btn = document.getElementById('btn-baixar-pdf');
                 const textoOriginal = btn.innerHTML;
@@ -528,14 +555,12 @@
                 btn.disabled = true;
 
                 try {
-                    // 1. Busca as descrições da tabela
                     const { data: descricoesData, error: descError } = await supabaseClient.from('descricoes_diarias').select('*');
                     
                     if (descError) {
                         console.error("Erro ao buscar descrições:", descError);
                     }
 
-                    // 2. Agrupa as fotos existentes por Local -> Data
                     const agrupado = {};
                     const urlsImagens = [];
                     
@@ -550,7 +575,6 @@
                         urlsImagens.push(foto.caminho_original);
                     });
 
-                    // 3. Mescla as descrições do Supabase no agrupamento
                     if (descricoesData) {
                         descricoesData.forEach(desc => {
                             const dtBanco = desc.data; 
@@ -565,25 +589,23 @@
                         });
                     }
 
-                    // 4. Pré-carregamento de TODAS AS IMAGENS em memória garantindo suporte a CORS.
-                    // Isso assegura que o html2canvas não bloqueie renderizações devido à segurança (tainted canvas)
+                    // Proteção garantindo carregamento das imagens 
                     await Promise.all(urlsImagens.map(src => {
                         return new Promise(resolve => {
+                            if (!src) return resolve(); // Escapa de imagens sem URL
                             const img = new Image();
                             img.crossOrigin = 'anonymous';
                             img.onload = resolve;
-                            img.onerror = resolve; // Avança mesmo em caso de falha de uma imagem individual
+                            img.onerror = resolve; 
                             img.src = src;
                         });
                     }));
 
-                    // 5. Constrói a estrutura HTML como String p/ o html2pdf
                     let htmlContent = '';
                     let isFirstPage = true;
 
                     for (const [local, datas] of Object.entries(agrupado)) {
                         
-                        // Troca lógica de estilo inline pela classe usada pela configuração pagebreak
                         htmlContent += `
                             <div class="${isFirstPage ? '' : 'nova-pagina'}" style="padding-top: 10px;">
                                 <h1 style="text-transform: uppercase; font-size: 22px; font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 20px; letter-spacing: 0.5px;">${local}</h1>
@@ -599,7 +621,6 @@
 
                             info.fotos.sort((a, b) => a.posicao.localeCompare(b.posicao));
 
-                            // Bloco da Data e Descrição
                             htmlContent += `
                                 <div style="margin-bottom: 30px;">
                                     <div style="background-color: #f3f4f6; padding: 10px 15px; margin-bottom: 15px; border-left: 4px solid #0284c7; page-break-inside: avoid;">
@@ -609,7 +630,6 @@
                                     <div style="display: block; width: 100%;">
                             `;
                             
-                            // Fotos daquela data (Adicionado crossorigin="anonymous")
                             info.fotos.forEach((f, index) => {
                                 const marginR = (index % 2 === 0) ? 'margin-right: 2%;' : 'margin-right: 0;';
                                 htmlContent += `
@@ -625,19 +645,15 @@
                                 </div>
                             `;
                         }
-
-                        // Fecha a div do Local
                         htmlContent += `</div>`;
                     }
                     
-                    // Empacota o HTML processado estabelecendo uma largura absoluta para o engine de captura
                     const relatorioCompleto = `
                         <div style="width: 800px; font-family: Arial, sans-serif; color: #000; padding: 10px;">
                             ${htmlContent}
                         </div>
                     `;
 
-                    // 6. Configurações otimizadas p/ HTML2PDF
                     const opt = {
                         margin:       [10, 10, 10, 10], 
                         filename:     'Relatorio_Avanco_Fisico.pdf',
@@ -645,14 +661,13 @@
                         html2canvas:  { 
                             scale: 2, 
                             useCORS: true, 
-                            windowWidth: 800, // Previne que ele use o viewport mobile do usuário esmagando o layout
+                            windowWidth: 800, 
                             scrollY: 0, 
                         }, 
                         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
                         pagebreak:    { mode: ['css', 'legacy'], before: '.nova-pagina' }
                     };
 
-                    // Passamos a string diretamente, o framework se encarrega de clonar p/ um IFrame em background invisível
                     await html2pdf().set(opt).from(relatorioCompleto).save();
 
                 } catch (error) {
