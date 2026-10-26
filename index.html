@@ -3,826 +3,510 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="robots" content="noindex, nofollow">
-    <title>Avanço Físico da Obra - Visualizador</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Script do Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
-                            500: '#0ea5e9',
-                            600: '#0284c7',
-                            900: '#0c4a6e',
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-                    }
-                }
+    <title>Fine Tuning</title>
+    <style>
+        :root {
+            --bg-color: #0d0d0d;
+            --card-bg: #1c1c1e;
+            --icon-bg: #2c2927;
+            --text-main: #f5f5f5;
+            --text-sec: #9e9e9e;
+            --accent: #bb86fc;
+            --carb-color: #a275ff; /* Roxo */
+            --fat-color: #ff5252; /* Vermelho/Rosa */
+            --prot-color: #ffca28; /* Amarelo */
+            --border-color: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            background: none;
+            color: inherit;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* TELA 0: HOME */
+        #home-screen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #121212 0%, #1c1c1e 100%);
+        }
+
+        #home-screen h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin-bottom: 2rem;
+            letter-spacing: 2px;
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            color: #000;
+            padding: 1rem 3rem;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+
+        /* TELA 1: DASHBOARD */
+        #dashboard-screen {
+            padding: 1rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (min-width: 768px) {
+            #dashboard-screen {
+                grid-template-columns: 1fr 1fr;
+                padding: 2rem;
             }
         }
-    </script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        /* HEADER */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 1rem;
+        }
         
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .app-header h2 {
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+
+        .icon-btn {
+            font-size: 1.2rem;
+            color: var(--text-sec);
+            padding: 0.5rem;
+        }
+
+        /* CARD DE INFORMAÇÕES NUTRICIONAIS */
+        .nutri-card {
+            background-color: var(--card-bg);
+            border-radius: 20px;
+            padding: 1.5rem;
+        }
+
+        .nutri-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-sec);
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .calories-display {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .calories-display h3 {
+            font-size: 3rem;
+            font-weight: 300;
+            margin-bottom: 0.5rem;
+        }
+
+        .calories-display p {
+            color: var(--text-sec);
+            font-size: 0.85rem;
+        }
+
+        .macros-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .macro-item h4 {
+            font-size: 0.85rem;
+            color: var(--text-sec);
+            font-weight: normal;
+            margin-bottom: 0.2rem;
+        }
+
+        .macro-item p {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .macro-item span {
+            font-size: 0.75rem;
+            color: var(--text-sec);
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .macro-bar-bg {
+            height: 4px;
+            background-color: #333;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .macro-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+        }
+
+        .target-percentage {
+            font-size: 0.75rem;
+            color: var(--text-sec);
+        }
+
+        /* LISTA DE REFEIÇÕES */
+        .meals-card {
+            background-color: var(--bg-color);
+        }
+
+        .meals-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .meals-header h2 {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .meal-item {
+            display: flex;
+            align-items: center;
+            padding: 1.2rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .meal-item:last-child {
+            border-bottom: none;
+        }
+
+        .meal-icon {
+            width: 50px;
+            height: 50px;
+            background-color: var(--icon-bg);
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+
+        .meal-content {
+            flex-grow: 1;
+            padding-right: 1rem;
+        }
+
+        .meal-title {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 0.2rem;
+        }
+
+        .meal-desc {
+            font-size: 0.75rem;
+            color: var(--text-sec);
+            margin-bottom: 0.4rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.3;
+        }
+
+        .meal-kcal {
+            font-size: 0.8rem;
+            color: var(--text-sec);
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .meal-kcal::before {
+            content: "🔥";
+            font-size: 0.7rem;
+            margin-right: 4px;
+            filter: grayscale(1);
+        }
+
+        .meal-macros-bar {
+            display: flex;
+            height: 4px;
+            border-radius: 2px;
+            overflow: hidden;
+            background-color: #333;
+            margin-bottom: 0.3rem;
+            width: 80%;
+        }
+
+        .meal-macros-text {
+            font-size: 0.65rem;
+            color: var(--text-sec);
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .meal-macros-text span {
+            display: flex;
+            align-items: center;
+        }
+
+        .meal-macros-text span::before {
+            content: "";
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+
+        .dot-carb::before { background-color: var(--carb-color); }
+        .dot-fat::before { background-color: var(--fat-color); }
+        .dot-prot::before { background-color: var(--prot-color); }
+
+        .add-btn {
+            width: 30px;
+            height: 30px;
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col overflow-hidden selection:bg-brand-500 selection:text-white">
+<body>
 
-    <!-- TELA DE LOGIN -->
-    <div id="tela-login" class="fixed inset-0 bg-gray-100 z-50 flex items-center justify-center">
-        <div class="bg-white p-8 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.05)] w-full max-w-sm border border-gray-100">
-            <h2 class="text-2xl font-bold mb-6 text-gray-800 text-center tracking-tight">Avanço Físico</h2>
-            <input type="email" id="email-login" placeholder="E-mail corporativo" class="w-full mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none transition-all">
-            <input type="password" id="senha-login" placeholder="Senha" class="w-full mb-6 p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none transition-all">
-            <button id="btn-entrar" class="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 transition-colors shadow-sm">Acessar Painel</button>
-            <p id="msg-erro" class="text-red-500 text-sm mt-4 text-center hidden"></p>
-        </div>
+    <!-- Tela Inicial -->
+    <div id="home-screen">
+        <h1>Fine Tuning</h1>
+        <button class="btn-primary" onclick="goToDiet()">Dieta</button>
     </div>
 
-    <!-- CONTEÚDO DO APP -->
-    <div id="app-content" class="hidden flex flex-col h-screen w-full overflow-hidden relative">
+    <!-- Tela Dashboard / Dieta -->
+    <div id="dashboard-screen" class="hidden">
         
-        <!-- Cabeçalho Global -->
-        <header class="bg-white shadow-sm flex items-center justify-between p-4 z-40 relative border-b border-gray-200 flex-shrink-0">
-            <div class="flex items-center gap-4">
-                <button id="btn-toggle-menu" class="text-gray-600 hover:text-brand-600 hover:bg-brand-50 focus:outline-none p-2 rounded-md transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-                </button>
-                <div class="flex items-center gap-2">
-                    <svg class="w-6 h-6 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                    <h1 class="text-lg font-bold text-gray-800 tracking-tight">Avanço Físico</h1>
+        <!-- Coluna Esquerda: Refeições -->
+        <div class="meals-card">
+            <div class="app-header">
+                <button class="icon-btn" onclick="goToHome()">&#10094;</button>
+                <h2>Registrar refeição</h2>
+                <div>
+                    <button class="icon-btn">📊</button>
+                    <button class="icon-btn">&#8942;</button>
                 </div>
             </div>
-            <button id="btn-sair" class="text-sm font-medium text-gray-500 hover:text-red-600 transition-colors">Sair</button>
-        </header>
 
-        <div class="flex flex-1 overflow-hidden relative">
-            <div id="mobile-overlay" class="md:hidden fixed inset-0 bg-gray-900/50 z-20 opacity-0 pointer-events-none transition-opacity duration-300"></div>
-
-            <aside id="sidebar" class="absolute left-0 top-0 h-full w-72 md:w-80 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-30 transform transition-transform duration-300 ease-in-out border-r border-gray-200 flex flex-col">
-                <div class="p-6 flex-1 overflow-y-auto no-scrollbar flex flex-col">
-                    <div class="flex items-center justify-between mb-5 md:mb-6">
-                        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Filtros de Busca</h3>
-                        <span id="badge-contador" class="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">0</span>
+            <div class="meal-item">
+                <div class="meal-icon">🌅</div>
+                <div class="meal-content">
+                    <div class="meal-title">Café da manhã</div>
+                    <div class="meal-desc">Ovo Mexido</div>
+                    <div class="meal-kcal">398 kcal</div>
+                    <div class="meal-macros-bar">
+                        <div style="width: 4%; background-color: var(--carb-color);"></div>
+                        <div style="width: 70%; background-color: var(--fat-color);"></div>
+                        <div style="width: 26%; background-color: var(--prot-color);"></div>
                     </div>
-                    
-                    <div class="space-y-5 flex-1">
-                        <div class="group">
-                            <label for="filtro-local" class="block text-sm font-semibold text-gray-700 mb-1.5 group-hover:text-brand-600 transition-colors">Local da Obra</label>
-                            <select id="filtro-local" class="w-full bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 block p-2.5 appearance-none cursor-pointer">
-                                <option value="">Todos os locais</option>
-                            </select>
-                        </div>
-                        
-                        <div class="group">
-                            <label for="filtro-posicao" class="block text-sm font-semibold text-gray-700 mb-1.5 group-hover:text-brand-600 transition-colors">Posição</label>
-                            <select id="filtro-posicao" class="w-full bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 block p-2.5 appearance-none cursor-pointer">
-                                <option value="">Todas as posições</option>
-                            </select>
-                        </div>
-
-                        <div class="group">
-                            <label for="filtro-data" class="block text-sm font-semibold text-gray-700 mb-1.5 group-hover:text-brand-600 transition-colors">Data do Registro</label>
-                            <input type="date" id="filtro-data" class="w-full bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 block p-2.5 cursor-pointer">
-                        </div>
-                    </div>
-
-                    <div class="mt-8 pt-4 border-t border-gray-100 flex flex-col gap-3">
-                        <button id="btn-grafico" class="w-full flex items-center justify-center gap-2 bg-brand-600 text-white hover:bg-brand-700 font-medium py-2.5 px-4 rounded-lg transition-all shadow-sm focus:ring-2 focus:ring-brand-500">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
-                            VER GRÁFICO
-                        </button>
-                        <button id="btn-limpar" class="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-brand-600 font-medium py-2.5 px-4 rounded-lg transition-all shadow-sm focus:ring-2 focus:ring-gray-200">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                            Limpar Filtros
-                        </button>
-                        <button id="btn-baixar-pdf" class="w-full mt-3 flex items-center justify-center gap-2 bg-gray-800 text-white hover:bg-gray-900 font-medium py-2.5 px-4 rounded-lg transition-all shadow-sm">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            GERAR PDF
-                        </button>
+                    <div class="meal-macros-text">
+                        <span class="dot-carb">4%</span>
+                        <span class="dot-fat">70%</span>
+                        <span class="dot-prot">26%</span>
                     </div>
                 </div>
-            </aside>
+                <button class="add-btn">+</button>
+            </div>
 
-            <main id="main-content" class="flex-1 h-full overflow-y-auto bg-gray-50/50 relative z-10 w-full scroll-smooth transition-all duration-300 ml-0 md:ml-80">
-                <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto h-full flex flex-col">
-                    <div id="grid-fotos" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 content-start pb-10"></div>
-                    
-                    <div id="empty-state" class="hidden flex-1 flex flex-col items-center justify-center text-center px-4 py-12">
-                        <div class="bg-gray-100 p-4 rounded-full mb-4">
-                            <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-800 mb-2">Nenhuma foto encontrada</h3>
-                        <p class="text-gray-500 max-w-md mx-auto">Ajuste os filtros de data, local ou posição para encontrar os registros.</p>
-                        <p id="msg-carregando" class="text-brand-600 font-medium mt-4 hidden">Sincronizando com o banco de dados...</p>
+            <div class="meal-item">
+                <div class="meal-icon">☀️</div>
+                <div class="meal-content">
+                    <div class="meal-title">Almoço</div>
+                    <div class="meal-desc">Albumina(Naturovos), Creatina(Soldiers Nutrition), Suco de Pêssego(Tial), Batavo Pense Zero, Coxinha de Frango</div>
+                    <div class="meal-kcal">1.091 kcal</div>
+                    <div class="meal-macros-bar">
+                        <div style="width: 50%; background-color: var(--carb-color);"></div>
+                        <div style="width: 29%; background-color: var(--fat-color);"></div>
+                        <div style="width: 21%; background-color: var(--prot-color);"></div>
+                    </div>
+                    <div class="meal-macros-text">
+                        <span class="dot-carb">50%</span>
+                        <span class="dot-fat">29%</span>
+                        <span class="dot-prot">21%</span>
                     </div>
                 </div>
-            </main>
+                <button class="add-btn">+</button>
+            </div>
+
+            <div class="meal-item">
+                <div class="meal-icon">🌙</div>
+                <div class="meal-content">
+                    <div class="meal-title">Jantar</div>
+                    <div class="meal-desc">Arroz BH Premium, Sardinhas com Óleo-Gomes da Costa, Pepino Japonês</div>
+                    <div class="meal-kcal">235 kcal</div>
+                    <div class="meal-macros-bar">
+                        <div style="width: 42%; background-color: var(--carb-color);"></div>
+                        <div style="width: 32%; background-color: var(--fat-color);"></div>
+                        <div style="width: 26%; background-color: var(--prot-color);"></div>
+                    </div>
+                    <div class="meal-macros-text">
+                        <span class="dot-carb">42%</span>
+                        <span class="dot-fat">32%</span>
+                        <span class="dot-prot">26%</span>
+                    </div>
+                </div>
+                <button class="add-btn">+</button>
+            </div>
+
+            <div class="meal-item">
+                <div class="meal-icon">⛅</div>
+                <div class="meal-content">
+                    <div class="meal-title">Lanche da manhã</div>
+                </div>
+                <button class="add-btn">+</button>
+            </div>
+
+            <div class="meal-item">
+                <div class="meal-icon">🌤️</div>
+                <div class="meal-content">
+                    <div class="meal-title">Lanche da tarde</div>
+                    <div class="meal-desc">Guarapan(Coca-Cola), Salsicha(Sadia), Pão Doce</div>
+                    <div class="meal-kcal">788 kcal</div>
+                    <div class="meal-macros-bar">
+                        <div style="width: 51%; background-color: var(--carb-color);"></div>
+                        <div style="width: 39%; background-color: var(--fat-color);"></div>
+                        <div style="width: 10%; background-color: var(--prot-color);"></div>
+                    </div>
+                    <div class="meal-macros-text">
+                        <span class="dot-carb">51%</span>
+                        <span class="dot-fat">39%</span>
+                        <span class="dot-prot">10%</span>
+                    </div>
+                </div>
+                <button class="add-btn">+</button>
+            </div>
+
+            <div class="meal-item">
+                <div class="meal-icon">🌒</div>
+                <div class="meal-content">
+                    <div class="meal-title">Lanche da noite</div>
+                    <div class="meal-desc">Mamão Papaia</div>
+                    <div class="meal-kcal">161 kcal</div>
+                    <div class="meal-macros-bar">
+                        <div style="width: 95%; background-color: var(--carb-color);"></div>
+                        <div style="width: 2%; background-color: var(--fat-color);"></div>
+                        <div style="width: 3%; background-color: var(--prot-color);"></div>
+                    </div>
+                    <div class="meal-macros-text">
+                        <span class="dot-carb">95%</span>
+                        <span class="dot-fat">2%</span>
+                        <span class="dot-prot">3%</span>
+                    </div>
+                </div>
+                <button class="add-btn">+</button>
+            </div>
         </div>
 
-        <!-- Modal Gráfico -->
-        <div id="modal-grafico" class="fixed inset-0 z-50 bg-black/60 hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
-            <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden transform scale-95 transition-transform duration-300" id="modal-content">
-                <div class="flex items-center justify-between p-5 border-b border-gray-100 bg-gray-50">
-                    <div>
-                        <h2 class="text-xl font-bold text-gray-800">Gráfico de Registros</h2>
-                        <p class="text-sm text-gray-500">Volume de fotos tiradas por dia no mês selecionado</p>
+        <!-- Coluna Direita: Info Nutricional (Ainda na tela um) -->
+        <div class="nutri-card">
+            <div class="nutri-header">
+                <button class="icon-btn">&#10094; Refeição</button>
+                <span>&#10094; sáb., 24 de out. &#10095;</span>
+            </div>
+
+            <div class="calories-display">
+                <h3>2.673 <span style="font-size: 1.2rem; font-weight: normal;">kcal</span></h3>
+                <p>2.340-2.860 &nbsp; (Máx 3.380)</p>
+            </div>
+
+            <div class="macros-container">
+                <div class="macro-item">
+                    <h4>Carboidr</h4>
+                    <p>312,1g</p>
+                    <span>/ 358 g</span>
+                    <div class="macro-bar-bg">
+                        <div class="macro-bar-fill" style="width: 87%; background-color: var(--carb-color);"></div>
                     </div>
-                    <button id="btn-fechar-modal" class="text-gray-400 hover:text-red-500 p-2 rounded-lg transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
+                    <div class="target-percentage">Real 46% (55%)</div>
                 </div>
-                
-                <div class="p-6">
-                    <div class="flex justify-end mb-4">
-                        <input type="month" id="grafico-mes-input" class="bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-2">
+
+                <div class="macro-item">
+                    <h4>Gord.</h4>
+                    <p>111,1g</p>
+                    <span>/ 72 g</span>
+                    <div class="macro-bar-bg">
+                        <div class="macro-bar-fill" style="width: 100%; background-color: var(--fat-color);"></div>
                     </div>
-                    <div class="relative h-80 w-full">
-                        <canvas id="chartAvanco"></canvas>
+                    <div class="target-percentage">Real 36% (25%)</div>
+                </div>
+
+                <div class="macro-item">
+                    <h4>Proteína</h4>
+                    <p>123,2g</p>
+                    <span>/ 150 g</span>
+                    <div class="macro-bar-bg">
+                        <div class="macro-bar-fill" style="width: 82%; background-color: var(--prot-color);"></div>
                     </div>
+                    <div class="target-percentage">Real 18% (20%)</div>
                 </div>
             </div>
         </div>
 
-        <!-- Modal Ampliação de Imagem -->
-        <div id="modal-imagem" class="fixed inset-0 z-[60] bg-black/90 hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300 select-none">
-            
-            <!-- Controles de Navegação (Teclas e Touch) -->
-            <button id="btn-fechar-imagem" class="absolute top-4 right-4 text-white hover:text-red-500 p-2 transition-colors z-20 bg-black/50 rounded-full">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-
-            <!-- Setas Laterais (Escondidas em telas muito pequenas, úteis no PC) -->
-            <button id="btn-prev-imagem" class="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:text-brand-500 p-3 transition-colors z-20 bg-black/50 rounded-full hidden sm:block">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-            </button>
-
-            <button id="btn-next-imagem" class="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:text-brand-500 p-3 transition-colors z-20 bg-black/50 rounded-full hidden sm:block">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-            </button>
-
-            <div class="relative max-w-5xl w-full flex flex-col items-center justify-center transform scale-95 transition-transform duration-300 px-4" id="modal-imagem-content">
-                <!-- Imagem -->
-                <img id="img-ampliada" src="" alt="" class="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl pointer-events-none">
-                
-                <!-- Legenda -->
-                <p id="legenda-ampliada" class="text-white text-center mt-4 text-sm md:text-lg font-medium bg-black/50 px-6 py-2 rounded-full shadow-lg backdrop-blur-sm pointer-events-none"></p>
-                
-                <!-- Indicador visual (Foto X de Y) -->
-                <p id="contador-ampliada" class="text-gray-300 text-xs mt-2 font-mono pointer-events-none"></p>
-            </div>
-        </div>
     </div>
-    
+
     <script>
-        // === CONFIGURAÇÃO DO SUPABASE ===
-        const supabaseUrl = 'https://sazravlfmlgidbjiguhx.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhenJhdmxmbWxnaWRiamlndWh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5NjI5MTEsImV4cCI6MjEwNDUzODkxMX0.xJ5S_rmZsF8Sf8tv9fQz2PC72G-qcAg1RLGU_yRxFTo';
-        
-        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-        document.addEventListener('DOMContentLoaded', () => {
-            
-            const DOM = {
-                telaLogin: document.getElementById('tela-login'),
-                appContent: document.getElementById('app-content'),
-                btnEntrar: document.getElementById('btn-entrar'),
-                btnSair: document.getElementById('btn-sair'),
-                emailInput: document.getElementById('email-login'),
-                senhaInput: document.getElementById('senha-login'),
-                msgErro: document.getElementById('msg-erro'),
-                selectLocal: document.getElementById('filtro-local'),
-                selectPosicao: document.getElementById('filtro-posicao'),
-                inputData: document.getElementById('filtro-data'),
-                btnLimpar: document.getElementById('btn-limpar'),
-                gridFotos: document.getElementById('grid-fotos'),
-                emptyState: document.getElementById('empty-state'),
-                badgeContador: document.getElementById('badge-contador'),
-                msgCarregando: document.getElementById('msg-carregando'),
-                btnToggleMenu: document.getElementById('btn-toggle-menu'),
-                sidebar: document.getElementById('sidebar'),
-                mainContent: document.getElementById('main-content'),
-                mobileOverlay: document.getElementById('mobile-overlay'),
-                btnGrafico: document.getElementById('btn-grafico'),
-                modalGrafico: document.getElementById('modal-grafico'),
-                modalContent: document.getElementById('modal-content'),
-                btnFecharModal: document.getElementById('btn-fechar-modal'),
-                graficoMesInput: document.getElementById('grafico-mes-input'),
-                // Elementos do Modal de Imagem
-                modalImagem: document.getElementById('modal-imagem'),
-                modalImagemContent: document.getElementById('modal-imagem-content'),
-                imgAmpliada: document.getElementById('img-ampliada'),
-                legendaAmpliada: document.getElementById('legenda-ampliada'),
-                btnFecharImagem: document.getElementById('btn-fechar-imagem'),
-                btnPrevImagem: document.getElementById('btn-prev-imagem'),
-                btnNextImagem: document.getElementById('btn-next-imagem'),
-                contadorAmpliada: document.getElementById('contador-ampliada')
-            };
-
-            let chartInstance = null; 
-            let baseDeDadosProcessada = []; 
-            let fotosVisiveisNaGrid = []; // Mantém a lista atual filtrada para navegação
-            let indiceImagemAtual = 0; // Controla a posição da imagem atual no modal
-
-            // === AUTENTICAÇÃO ===
-            supabaseClient.auth.onAuthStateChange((event, session) => {
-                if (session) {
-                    DOM.telaLogin.classList.add('hidden');
-                    DOM.appContent.classList.remove('hidden');
-                    ajustarEstadoSidebarInicial();
-                    inicializar(); 
-                } else {
-                    DOM.telaLogin.classList.remove('hidden');
-                    DOM.appContent.classList.add('hidden');
-                }
-            });
-
-            const fazerLogin = async () => {
-                const email = DOM.emailInput.value;
-                const senha = DOM.senhaInput.value;
-                
-                if (!email || !senha) {
-                    DOM.msgErro.textContent = "Preencha todos os campos.";
-                    DOM.msgErro.classList.remove('hidden');
-                    return;
-                }
-
-                DOM.btnEntrar.textContent = "Verificando...";
-                DOM.msgErro.classList.add('hidden');
-                
-                const { error } = await supabaseClient.auth.signInWithPassword({
-                    email: email,
-                    password: senha,
-                });
-
-                if (error) {
-                    DOM.msgErro.textContent = "E-mail ou senha incorretos.";
-                    DOM.msgErro.classList.remove('hidden');
-                    DOM.btnEntrar.textContent = "Acessar Painel";
-                }
-            };
-
-            DOM.btnEntrar.addEventListener('click', fazerLogin);
-            
-            DOM.senhaInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') fazerLogin();
-            });
-
-            DOM.btnSair.addEventListener('click', async () => {
-                await supabaseClient.auth.signOut();
-                DOM.emailInput.value = '';
-                DOM.senhaInput.value = '';
-                DOM.btnEntrar.textContent = "Acessar Painel";
-                baseDeDadosProcessada = [];
-                fotosVisiveisNaGrid = [];
-                DOM.gridFotos.innerHTML = '';
-            });
-
-            // === LÓGICA DE DADOS OTIMIZADA ===
-            const deParaLocais = {
-                "areaexternaladodireito": "Área Externa Lado Direito",
-                "passeioladoesquerdo": "Passeio Lado Esquerdo",
-                "fundo": "Fundo",
-                "banheiro": "Banheiro",
-                "fundacaofrontal": "Fundação Frontal"
-            };
-
-            const carregarDadosDoSupabase = async () => {
-                DOM.gridFotos.classList.add('hidden');
-                DOM.emptyState.classList.remove('hidden');
-                DOM.msgCarregando.classList.remove('hidden');
-
-                const { data, error } = await supabaseClient.from('registros_obras').select('*');
-                
-                DOM.msgCarregando.classList.add('hidden');
-
-                if (error) {
-                    console.error("Erro ao buscar dados do Supabase:", error);
-                    return;
-                }
-
-                if (!data || data.length === 0) {
-                    baseDeDadosProcessada = [];
-                    return;
-                }
-
-                const caminhosExtraidos = data.map(item => {
-                    let path = item.caminho || '';
-                    if (path.includes('/public/fotos-obra/')) {
-                        path = path.split('/public/fotos-obra/')[1];
-                    } else if (path.includes('/fotos-obra/')) {
-                        path = path.split('/fotos-obra/')[1];
-                    }
-                    if (path.includes('?')) path = path.split('?')[0];
-                    return path;
-                });
-
-                const { data: signedUrlsData, error: signedUrlsError } = await supabaseClient
-                    .storage
-                    .from('fotos-obra')
-                    .createSignedUrls(caminhosExtraidos, 7200); 
-
-                if (signedUrlsError) {
-                    console.error("Erro ao gerar URLs assinadas em lote:", signedUrlsError);
-                }
-
-                const mapaUrls = {};
-                if (signedUrlsData) {
-                    signedUrlsData.forEach(file => {
-                        if (!file.error) {
-                            mapaUrls[file.path] = file.signedUrl;
-                        }
-                    });
-                }
-
-                baseDeDadosProcessada = data.map((item, index) => {
-                    const pathExato = caminhosExtraidos[index];
-                    const urlSegura = mapaUrls[pathExato] || ''; 
-                    
-                    let filename = item.nome_arquivo ? item.nome_arquivo.split('.')[0] : 'Indefinido_Indefinido';
-                    let partes = filename.split('_');
-                    
-                    let localStr = partes[0] || 'Indefinido';
-                    let posicaoStr = partes[1] || 'Indefinido';
-                    let dataStr = partes[2] || ''; 
-                    
-                    let dataFormatada = '';
-                    if(dataStr.length === 8) {
-                        dataFormatada = `${dataStr.substring(0,4)}-${dataStr.substring(4,6)}-${dataStr.substring(6,8)}`;
-                    }
-
-                    let localFormatado = deParaLocais[localStr.toLowerCase()] || (localStr.charAt(0).toUpperCase() + localStr.slice(1));
-
-                    return {
-                        caminho_original: urlSegura,
-                        local_exibicao: localFormatado,
-                        posicao: posicaoStr,
-                        data_iso: dataFormatada,
-                        mes_iso: dataFormatada ? dataFormatada.substring(0,7) : '' 
-                    };
-                });
-            };
-
-            const inicializar = async () => {
-                DOM.selectLocal.innerHTML = '<option value="">Todos os locais</option>';
-                DOM.selectPosicao.innerHTML = '<option value="">Todas as posições</option>';
-
-                await carregarDadosDoSupabase();
-                
-                const locais = new Set();
-                const posicoes = new Set();
-
-                baseDeDadosProcessada.forEach(foto => {
-                    if (foto.local_exibicao) locais.add(foto.local_exibicao);
-                    if (foto.posicao) posicoes.add(foto.posicao);
-                });
-
-                Array.from(locais).sort().forEach(local => {
-                    const option = document.createElement('option');
-                    option.value = local;
-                    option.textContent = local;
-                    DOM.selectLocal.appendChild(option);
-                });
-
-                Array.from(posicoes).sort().forEach(posicao => {
-                    const option = document.createElement('option');
-                    option.value = posicao;
-                    option.textContent = `Ângulo: ${posicao}`;
-                    DOM.selectPosicao.appendChild(option);
-                });
-
-                const dataHoje = new Date();
-                DOM.graficoMesInput.value = dataHoje.toISOString().substring(0, 7);
-
-                renderizarGrid();
-            };
-
-            const renderizarGrid = () => {
-                const valLocal = DOM.selectLocal.value;
-                const valPosicao = DOM.selectPosicao.value;
-                const valData = DOM.inputData.value;
-
-                const fotosFiltradas = baseDeDadosProcessada.filter(foto => {
-                    const matchLocal = !valLocal || foto.local_exibicao === valLocal;
-                    const matchPosicao = !valPosicao || foto.posicao === valPosicao;
-                    const matchData = !valData || foto.data_iso === valData;
-                    return matchLocal && matchPosicao && matchData;
-                });
-
-                DOM.gridFotos.innerHTML = '';
-                DOM.badgeContador.textContent = fotosFiltradas.length;
-                fotosVisiveisNaGrid = []; // Zera a lista navegável
-
-                if (fotosFiltradas.length === 0) {
-                    DOM.gridFotos.classList.add('hidden');
-                    DOM.emptyState.classList.remove('hidden');
-                    return;
-                } else {
-                    DOM.gridFotos.classList.remove('hidden');
-                    DOM.emptyState.classList.add('hidden');
-                }
-
-                fotosFiltradas.forEach((foto, index) => {
-                    let dataBr = foto.data_iso;
-                    if(foto.data_iso.length === 10) {
-                        const p = foto.data_iso.split('-');
-                        dataBr = `${p[2]}/${p[1]}/${p[0]}`;
-                    }
-
-                    const legendaTexto = `${foto.local_exibicao} | Ângulo: ${foto.posicao} | Data: ${dataBr}`;
-                    const imgSrc = foto.caminho_original; 
-                    
-                    // Adiciona a foto no array de controle para a navegação do modal
-                    fotosVisiveisNaGrid.push({ src: imgSrc, legenda: legendaTexto });
-
-                    const card = document.createElement('div');
-                    card.className = "group bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col border border-gray-100";
-                    
-                    const fallbackImg = "https://placehold.co/600x600/f1f5f9/94a3b8?text=Imagem+N%C3%A3o+Encontrada";
-
-                    // Adicionado índice (data-index) para identificar a foto clicada
-                    card.innerHTML = `
-                        <div class="relative aspect-square bg-gray-100 overflow-hidden border-b border-gray-100 cursor-pointer foto-clicavel" data-index="${index}">
-                            <img src="${imgSrc}" alt="${legendaTexto}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" onerror="this.onerror=null;this.src='${fallbackImg}';">
-                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <svg class="w-10 h-10 text-white drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
-                            </div>
-                        </div>
-                        <div class="p-4 bg-white text-center mt-auto flex flex-col justify-center min-h-[70px]">
-                            <p class="text-sm font-bold text-gray-800">${foto.local_exibicao}</p>
-                            <p class="text-xs font-medium text-gray-500 mt-1">Posição: ${foto.posicao} &bull; ${dataBr}</p>
-                        </div>
-                    `;
-                    DOM.gridFotos.appendChild(card);
-                });
-            };
-
-            [DOM.selectLocal, DOM.selectPosicao, DOM.inputData].forEach(el => el.addEventListener('change', renderizarGrid));
-
-            DOM.btnLimpar.addEventListener('click', () => {
-                DOM.selectLocal.value = '';
-                DOM.selectPosicao.value = '';
-                DOM.inputData.value = '';
-                renderizarGrid();
-            });
-
-            // === LÓGICA DE ABRIR IMAGEM E NAVEGAÇÃO ===
-            DOM.gridFotos.addEventListener('click', (e) => {
-                const container = e.target.closest('.foto-clicavel');
-                if (container) {
-                    const index = parseInt(container.getAttribute('data-index'), 10);
-                    abrirModalImagem(index);
-                }
-            });
-
-            const atualizarImagemModal = () => {
-                if (fotosVisiveisNaGrid.length === 0) return;
-                const fotoAtual = fotosVisiveisNaGrid[indiceImagemAtual];
-                DOM.imgAmpliada.src = fotoAtual.src;
-                DOM.legendaAmpliada.textContent = fotoAtual.legenda;
-                DOM.contadorAmpliada.textContent = `${indiceImagemAtual + 1} de ${fotosVisiveisNaGrid.length}`;
-            };
-
-            const mudarImagem = (direcao) => {
-                indiceImagemAtual += direcao;
-                // Faz o loop infinito nas pontas
-                if (indiceImagemAtual < 0) indiceImagemAtual = fotosVisiveisNaGrid.length - 1;
-                if (indiceImagemAtual >= fotosVisiveisNaGrid.length) indiceImagemAtual = 0;
-                atualizarImagemModal();
-            };
-
-            const abrirModalImagem = (index) => {
-                indiceImagemAtual = index;
-                atualizarImagemModal();
-                DOM.modalImagem.classList.remove('hidden');
-                
-                setTimeout(() => {
-                    DOM.modalImagem.classList.remove('opacity-0');
-                    DOM.modalImagemContent.classList.remove('scale-95');
-                }, 10);
-            };
-
-            const fecharModalImagem = () => {
-                DOM.modalImagem.classList.add('opacity-0');
-                DOM.modalImagemContent.classList.add('scale-95');
-                
-                setTimeout(() => {
-                    DOM.modalImagem.classList.add('hidden');
-                    DOM.imgAmpliada.src = ''; 
-                }, 300);
-            };
-
-            // Eventos de clique nas Setas (previne fechar o modal)
-            DOM.btnPrevImagem.addEventListener('click', (e) => {
-                e.stopPropagation();
-                mudarImagem(-1);
-            });
-            DOM.btnNextImagem.addEventListener('click', (e) => {
-                e.stopPropagation();
-                mudarImagem(1);
-            });
-
-            DOM.btnFecharImagem.addEventListener('click', fecharModalImagem);
-            
-            // Fecha clicando no fundo escuro fora da imagem
-            DOM.modalImagem.addEventListener('click', (e) => {
-                if (e.target === DOM.modalImagem) fecharModalImagem();
-            });
-
-            // Controle pelo Teclado (Setas e ESC)
-            document.addEventListener('keydown', (e) => {
-                if (!DOM.modalImagem.classList.contains('hidden')) {
-                    if (e.key === 'Escape') fecharModalImagem();
-                    if (e.key === 'ArrowLeft') mudarImagem(-1);
-                    if (e.key === 'ArrowRight') mudarImagem(1);
-                }
-            });
-
-            // Gesto de Swipe (Arrastar no touch)
-            let touchstartX = 0;
-            let touchendX = 0;
-
-            const verificarSwipe = () => {
-                const limiteSwipe = 50; // Distância mínima (em px) para considerar um arraste válido
-                if (touchendX < touchstartX - limiteSwipe) mudarImagem(1); // Deslizou pra esquerda -> Próxima
-                if (touchendX > touchstartX + limiteSwipe) mudarImagem(-1); // Deslizou pra direita -> Anterior
-            };
-
-            DOM.modalImagemContent.addEventListener('touchstart', (e) => {
-                touchstartX = e.changedTouches[0].screenX;
-            });
-
-            DOM.modalImagemContent.addEventListener('touchend', (e) => {
-                touchendX = e.changedTouches[0].screenX;
-                verificarSwipe();
-            });
-
-
-            // === UI & MODAIS GERAIS ===
-            let isMenuOpen = window.innerWidth >= 768; 
-            
-            const ajustarEstadoSidebarInicial = () => {
-                if (!isMenuOpen) {
-                    DOM.sidebar.classList.add('-translate-x-full');
-                    DOM.mainContent.classList.remove('md:ml-80');
-                }
-            };
-            
-            const toggleSidebar = () => {
-                isMenuOpen = !isMenuOpen;
-                if (isMenuOpen) {
-                    DOM.sidebar.classList.remove('-translate-x-full');
-                    if (window.innerWidth >= 768) {
-                        DOM.mainContent.classList.add('md:ml-80');
-                    } else {
-                        DOM.mobileOverlay.classList.remove('opacity-0', 'pointer-events-none');
-                    }
-                } else {
-                    DOM.sidebar.classList.add('-translate-x-full');
-                    DOM.mainContent.classList.remove('md:ml-80');
-                    DOM.mobileOverlay.classList.add('opacity-0', 'pointer-events-none');
-                }
-            };
-
-            DOM.btnToggleMenu.addEventListener('click', toggleSidebar);
-            DOM.mobileOverlay.addEventListener('click', toggleSidebar);
-
-            const abrirModalGrafico = () => {
-                DOM.modalGrafico.classList.remove('hidden');
-                setTimeout(() => {
-                    DOM.modalGrafico.classList.remove('opacity-0');
-                    DOM.modalContent.classList.remove('scale-95');
-                }, 10);
-                gerarGrafico();
-            };
-
-            const fecharModalGrafico = () => {
-                DOM.modalGrafico.classList.add('opacity-0');
-                DOM.modalContent.classList.add('scale-95');
-                setTimeout(() => DOM.modalGrafico.classList.add('hidden'), 300);
-            };
-
-            DOM.btnGrafico.addEventListener('click', abrirModalGrafico);
-            DOM.btnFecharModal.addEventListener('click', fecharModalGrafico);
-            DOM.graficoMesInput.addEventListener('change', gerarGrafico);
-            DOM.modalGrafico.addEventListener('click', (e) => { if (e.target === DOM.modalGrafico) fecharModalGrafico(); });
-
-            function gerarGrafico() {
-                const mesSelecionado = DOM.graficoMesInput.value;
-                if (!mesSelecionado) return;
-
-                const [ano, mes] = mesSelecionado.split('-');
-                const dadosDoMes = baseDeDadosProcessada.filter(f => f.mes_iso === mesSelecionado);
-                const diasNoMes = new Date(ano, mes, 0).getDate();
-                
-                const labelsDias = [];
-                const dadosQuantidade = [];
-                const contagemPorDia = {};
-                
-                dadosDoMes.forEach(foto => {
-                    if (foto.data_iso) contagemPorDia[foto.data_iso] = (contagemPorDia[foto.data_iso] || 0) + 1;
-                });
-
-                for (let i = 1; i <= diasNoMes; i++) {
-                    const diaFormatado = i.toString().padStart(2, '0');
-                    labelsDias.push(diaFormatado);
-                    dadosQuantidade.push(contagemPorDia[`${mesSelecionado}-${diaFormatado}`] || 0);
-                }
-
-                const ctx = document.getElementById('chartAvanco').getContext('2d');
-                if (chartInstance) chartInstance.destroy(); 
-
-                chartInstance = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labelsDias,
-                        datasets: [{
-                            label: 'Nº de Fotos no Dia',
-                            data: dadosQuantidade,
-                            borderColor: '#0284c7',
-                            backgroundColor: 'rgba(2, 132, 199, 0.1)',
-                            borderWidth: 2,
-                            pointBackgroundColor: '#0ea5e9',
-                            pointRadius: 4,
-                            fill: true,
-                            tension: 0.3
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: { beginAtZero: true, ticks: { precision: 0 } },
-                            x: { title: { display: true, text: `Dias do Mês (${mes}/${ano})` } }
-                        },
-                        plugins: { legend: { display: false } }
-                    }
-                });
-            }
-
-            // === AÇÃO DO BOTÃO PDF ===
-            document.getElementById('btn-baixar-pdf').addEventListener('click', async () => {
-                const btn = document.getElementById('btn-baixar-pdf');
-                const textoOriginal = btn.innerHTML;
-                
-                if (baseDeDadosProcessada.length === 0) {
-                    alert("Nenhum registro encontrado para gerar o PDF.");
-                    return;
-                }
-                
-                btn.innerHTML = 'Processando...';
-                btn.disabled = true;
-
-                try {
-                    const { data: descricoesData, error: descError } = await supabaseClient.from('descricoes_diarias').select('*');
-                    
-                    if (descError) {
-                        console.error("Erro ao buscar descrições:", descError);
-                    }
-
-                    const agrupado = {};
-                    const urlsImagens = [];
-                    
-                    baseDeDadosProcessada.forEach(foto => {
-                        const loc = foto.local_exibicao;
-                        const dt = foto.data_iso; 
-                        
-                        if (!agrupado[loc]) agrupado[loc] = {};
-                        if (!agrupado[loc][dt]) agrupado[loc][dt] = { fotos: [], descricao: 'Sem descrição cadastrada.' };
-                        
-                        agrupado[loc][dt].fotos.push(foto);
-                        urlsImagens.push(foto.caminho_original);
-                    });
-
-                    if (descricoesData) {
-                        descricoesData.forEach(desc => {
-                            const dtBanco = desc.data; 
-                            
-                            const locKey = Object.keys(agrupado).find(k => 
-                                k.trim().toLowerCase() === (desc.local || '').trim().toLowerCase()
-                            );
-                    
-                            if (locKey && agrupado[locKey][dtBanco]) {
-                                agrupado[locKey][dtBanco].descricao = desc.descricao;
-                            }
-                        });
-                    }
-
-                    await Promise.all(urlsImagens.map(src => {
-                        return new Promise(resolve => {
-                            if (!src) return resolve();
-                            const img = new Image();
-                            img.crossOrigin = 'anonymous';
-                            img.onload = resolve;
-                            img.onerror = resolve; 
-                            img.src = src;
-                        });
-                    }));
-
-                    let htmlContent = '';
-                    let isFirstPage = true;
-
-                    for (const [local, datas] of Object.entries(agrupado)) {
-                        
-                        htmlContent += `
-                            <div class="${isFirstPage ? '' : 'nova-pagina'}" style="padding-top: 20px; clear: both;">
-                                <h1 style="text-transform: uppercase; font-size: 24px; font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 25px; color: #000;">${local}</h1>
-                        `;
-                        isFirstPage = false;
-
-                        const datasOrdenadas = Object.keys(datas).sort();
-
-                        for (const dataIso of datasOrdenadas) {
-                            const info = datas[dataIso];
-                            const p = dataIso.split('-');
-                            const dataBr = `${p[2]}/${p[1]}/${p[0]}`;
-
-                            info.fotos.sort((a, b) => a.posicao.localeCompare(b.posicao));
-
-                            htmlContent += `
-                                <div style="margin-bottom: 40px; clear: both;">
-                                    <div style="background-color: #f3f4f6; padding: 15px; margin-bottom: 25px; border-left: 5px solid #0284c7; page-break-inside: avoid;">
-                                        <h2 style="font-size: 18px; margin: 0 0 8px 0; color: #111; font-weight: bold;">Registro Diário - ${dataBr}</h2>
-                                        <p style="font-size: 15px; margin: 0; color: #333; line-height: 1.5;">${info.descricao}</p>
-                                    </div>
-                                    <div style="display: block; width: 100%; font-size: 0;"> 
-                            `;
-                            
-                            info.fotos.forEach((f, index) => {
-                                const marginR = (index % 2 === 0) ? 'margin-right: 20px;' : 'margin-right: 0;';
-                                htmlContent += `
-                                        <div style="display: inline-block; width: 370px; ${marginR} text-align: center; margin-bottom: 25px; page-break-inside: avoid; vertical-align: top;">
-                                            <img src="${f.caminho_original}" crossorigin="anonymous" style="width: 370px; height: 260px; object-fit: cover; border: 1px solid #9ca3af; border-radius: 4px; display: block; box-sizing: border-box;">
-                                            <p style="font-size: 14px; margin-top: 8px; font-weight: bold; color: #111; font-family: Arial, sans-serif;">Posição: ${f.posicao}</p>
-                                        </div>
-                                `;
-                            });
-                            
-                            htmlContent += `
-                                    </div>
-                                </div>
-                            `;
-                        }
-                        htmlContent += `</div>`;
-                    }
-                    
-                    const relatorioDiv = document.createElement('div');
-                    relatorioDiv.style.width = '800px';
-                    relatorioDiv.style.padding = '20px';
-                    relatorioDiv.style.backgroundColor = '#ffffff';
-                    relatorioDiv.style.color = '#000000';
-                    relatorioDiv.style.fontFamily = 'Arial, sans-serif';
-                    relatorioDiv.style.position = 'absolute';
-                    relatorioDiv.style.left = '-9999px';
-                    relatorioDiv.style.top = '0';
-                    relatorioDiv.style.boxSizing = 'border-box';
-                    relatorioDiv.innerHTML = htmlContent;
-
-                    document.body.appendChild(relatorioDiv);
-
-                    await new Promise(r => setTimeout(r, 500));
-
-                    const opt = {
-                        margin:       10, 
-                        filename:     'Relatorio_Avanco_Fisico.pdf',
-                        image:        { type: 'jpeg', quality: 0.98 }, 
-                        html2canvas:  { 
-                            scale: 2, 
-                            useCORS: true, 
-                            windowWidth: 800, 
-                            scrollY: 0, 
-                        }, 
-                        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                        pagebreak:    { mode: ['css', 'legacy'], before: '.nova-pagina' }
-                    };
-
-                    await html2pdf().set(opt).from(relatorioDiv).save();
-
-                    document.body.removeChild(relatorioDiv);
-
-                } catch (error) {
-                    console.error("Erro ao gerar PDF:", error);
-                    alert("Ocorreu um erro ao gerar o PDF. Verifique o console.");
-                } finally {
-                    btn.innerHTML = textoOriginal;
-                    btn.disabled = false;
-                }
-            });
-
-        });
+        function goToDiet() {
+            document.getElementById('home-screen').classList.add('hidden');
+            document.getElementById('dashboard-screen').classList.remove('hidden');
+        }
+
+        function goToHome() {
+            document.getElementById('dashboard-screen').classList.add('hidden');
+            document.getElementById('home-screen').classList.remove('hidden');
+        }
     </script>
 </body>
 </html>
